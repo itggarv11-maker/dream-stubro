@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'https://esm.sh/react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { GameLevel, PlayerPosition, Interaction } from '../types';
 import * as geminiService from '../services/geminiService';
 import * as userService from '../services/userService';
@@ -70,12 +69,10 @@ const ChapterConquestPage: React.FC = () => {
             const newX = prev.x + dx;
             const newY = prev.y + dy;
             
-            // Bounds check
             if (newY < 0 || newY >= (level.grid || []).length || newX < 0 || newX >= (level.grid[0] || []).length) {
                 return prev;
             }
 
-            // Wall check
             if (level.grid[newY][newX].type === 'wall') {
                 return prev;
             }
@@ -150,7 +147,7 @@ const ChapterConquestPage: React.FC = () => {
                  height: level.grid.length * TILE_SIZE 
              }}>
                  {(level.grid || []).map((row, y) => (row || []).map((tile, x) => {
-                     let bg = 'bg-slate-700'; // floor
+                     let bg = 'bg-slate-700'; 
                      if (tile.type === 'wall') bg = 'bg-slate-900';
                      if (tile.type === 'exit') bg = 'bg-amber-500';
                      

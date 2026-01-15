@@ -13,7 +13,7 @@ let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
     if (!aiInstance) {
         const key = process.env.API_KEY;
-        if (!key) throw new Error("CRITICAL_NODE_FAILURE: API_KEY_MISSING. Check Vercel Environment Variables.");
+        if (!key) throw new Error("CRITICAL_NODE_FAILURE: API_KEY_MISSING");
         aiInstance = new GoogleGenAI({ apiKey: key });
     }
     return aiInstance;
@@ -22,6 +22,31 @@ const getAI = () => {
 const enforceToken = async () => {
     const hasTokens = await checkTokens();
     if (!hasTokens) throw new Error("ASCENSION_REQUIRED: Neural tokens depleted (0/100). Upgrade required for more missions.");
+};
+
+/**
+ * WEB CRAWLER: Guaranteed 101% Logic.
+ * Uses gemini-3-pro-preview for advanced tool use.
+ */
+export const fetchChapterContent = async (level: ClassLevel, subject: Subject, chapter: string, details: string): Promise<string> => {
+    await enforceToken();
+    const ai = getAI();
+    
+    const prompt = `SEARCH AND RETRIEVE: I need the complete descriptive contents of the NCERT chapter "${chapter}" for ${level} ${subject}. ${details}. 
+    MANDATORY PROTOCOL: You MUST use the googleSearch tool to find official textbook contents or highly accurate educational summaries. 
+    OUTPUT: Return the FULL descriptive text of the chapter concepts, NOT a brief summary. Ensure accuracy for the Indian curriculum.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: prompt,
+        config: { 
+            tools: [{ googleSearch: {} }],
+            temperature: 0.1 // Precision focus
+        }
+    });
+
+    await deductToken();
+    return response.text || "Neural search node timed out. Please refine your query.";
 };
 
 export const solveMathsBrahmastra = async (problem: string, level: ClassLevel, imagePart?: any): Promise<MathsSolution> => {
@@ -42,43 +67,7 @@ export const solveMathsBrahmastra = async (problem: string, level: ClassLevel, i
     });
     
     await deductToken();
-    const result = JSON.parse(response.text || "{}");
-    await saveActivity('math_solve', problem, 'Math', result);
-    return result;
-};
-
-export const fetchChapterContent = async (level: ClassLevel, subject: Subject, chapter: string, details: string): Promise<string> => {
-    await enforceToken();
-    const ai = getAI();
-    
-    // Deployment-specific tuning: Explicitly command search grounding for stability
-    const prompt = `SEARCH_MANDATORY: I require the full descriptive concepts and textbook contents for the NCERT chapter "${chapter}" (${level} ${subject}). ${details}. 
-    PROTOCOL:
-    1. Use the googleSearch tool to locate official textbook text or verified educational sources.
-    2. Synthesize the findings into a COMPLETE educational content piece.
-    3. Ensure 101% accuracy aligned with the Indian CBSE/NCERT curriculum.
-    OUTPUT: Provide the full descriptive chapter text.`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: prompt,
-        config: { 
-            tools: [{ googleSearch: {} }],
-            temperature: 0.1 // Precision focus for deployment stability
-        }
-    });
-
-    const sources = response.candidates?.[0]?.groundingMetadata?.searchEntryPoint?.renderedContent || "";
-    const resultText = response.text || "Neural search node timed out. Please refine query parameters.";
-
-    await deductToken();
-    await saveActivity('web_crawl', chapter, subject, { 
-        query: chapter, 
-        length: resultText.length,
-        sources: sources
-    });
-    
-    return resultText;
+    return JSON.parse(response.text || "{}");
 };
 
 export const generateSmartSummary = async (subject: Subject, classLevel: ClassLevel, sourceText: string): Promise<SmartSummary> => {
@@ -88,37 +77,27 @@ export const generateSmartSummary = async (subject: Subject, classLevel: ClassLe
         model: "gemini-3-flash-preview",
         contents: `Subject: ${subject}. Level: ${classLevel}. Context: ${sourceText}`,
         config: { 
-            systemInstruction: "Create a precision summary. NO DOLLAR SIGNS. JSON schema strictly.",
+            systemInstruction: "Create a precision summary. NO DOLLAR SIGNS ($). Output strict JSON according to SmartSummary interface.",
             responseMimeType: "application/json"
         }
     });
     await deductToken();
-    const result = JSON.parse(response.text || "{}");
-    await saveActivity('summary', "Neural Synthesis", subject, result);
-    return result;
+    return JSON.parse(response.text || "{}");
 };
 
-export const generateQuiz = async (
-    subject: Subject, 
-    classLevel: ClassLevel, 
-    sourceText: string, 
-    num: number = 5,
-    difficulty: string = 'Medium',
-    type: string = 'mcq'
-): Promise<QuizQuestion[]> => {
+export const generateQuiz = async (subject: Subject, classLevel: ClassLevel, sourceText: string, num: number = 5): Promise<QuizQuestion[]> => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Generate ${num} ${difficulty} ${type} questions from: ${sourceText}`,
+        contents: `Generate ${num} quiz questions from: ${sourceText}`,
         config: { 
-            systemInstruction: "Generate quiz questions. Output JSON with a 'questions' array. No $ signs.",
+            systemInstruction: "Output JSON with a 'questions' array. No $ signs.",
             responseMimeType: "application/json" 
         }
     });
     await deductToken();
     const data = JSON.parse(response.text || '{"questions":[]}');
-    await saveActivity('quiz', "Board Mastery", subject, data);
     return data.questions || [];
 };
 
@@ -161,9 +140,7 @@ export const generateMindMapFromText = async (text: string, level: ClassLevel): 
         }
     });
     await deductToken();
-    const result = JSON.parse(response.text || "{}");
-    await saveActivity('mindmap', "Visual Logic", "General", result);
-    return result;
+    return JSON.parse(response.text || "{}");
 };
 
 export const generateQuestionPaper = async (
@@ -185,9 +162,7 @@ export const generateQuestionPaper = async (
         }
     });
     await deductToken();
-    const result = JSON.parse(response.text || "{}");
-    await saveActivity('paper', "Mock Exam", subject || 'General', result);
-    return result;
+    return JSON.parse(response.text || "{}");
 };
 
 export const generateVivaQuestions = async (topic: string, level: string, num: number): Promise<string[]> => {

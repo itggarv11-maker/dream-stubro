@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'https://esm.sh/react-router-dom';
+import { Link } from 'react-router-dom';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Spinner from '../components/common/Spinner';
@@ -8,34 +7,12 @@ import { HistoricalChatIcon } from '../components/icons';
 import { Chat } from '@google/genai';
 import * as geminiService from '../services/geminiService';
 import { ChatMessage } from '../types';
+import MathRenderer from '../components/common/MathRenderer';
 
 const HISTORICAL_FIGURES = [
     "Albert Einstein", "Mahatma Gandhi", "Isaac Newton", "Marie Curie", 
     "Leonardo da Vinci", "William Shakespeare", "Chanakya", "Aryabhata"
 ];
-
-// New component to handle markdown and math rendering in chat
-const MessageContent: React.FC<{ text: string }> = ({ text }) => {
-    const contentRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        // FIX: Cast window to any to access renderMathInElement which is provided by an external script
-        const win = window as any;
-        if (contentRef.current && win.renderMathInElement) {
-            win.renderMathInElement(contentRef.current, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '\\[', right: '\\]', display: true}
-                ],
-                throwOnError: false
-            });
-        }
-    }, [text]);
-
-    return <div ref={contentRef} className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }} />;
-};
-
 
 const HistoricalChatPage: React.FC = () => {
     const [step, setStep] = useState<'setup' | 'chatting'>('setup');
@@ -149,9 +126,9 @@ const HistoricalChatPage: React.FC = () => {
                     <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                         {msg.role === 'model' && <span className="flex-shrink-0 w-8 h-8 bg-slate-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow">AI</span>}
                         <div className={`max-w-xl p-3 rounded-lg shadow-sm ${msg.role === 'user' ? 'bg-violet-600 text-white' : 'bg-white text-slate-800 border border-slate-200'}`}>
-                           <MessageContent text={msg.text} />
+                           <MathRenderer text={msg.text} isChat />
                         </div>
-                        {msg.role === 'user' && <span className="flex-shrink-0 w-8 h-8 bg-violet-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow">You</span>}
+                        {msg.role === 'user' && <span className="flex-shrink-0 w-8 h-8 bg-slate-400 text-white rounded-full flex items-center justify-center font-bold text-sm shadow">You</span>}
                     </div>
                     ))}
                     {isLoading && <div className="flex justify-start"><Spinner colorClass="bg-slate-600" /></div>}

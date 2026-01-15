@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { Link } from 'https://esm.sh/react-router-dom';
+import { Link } from 'react-router-dom';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
@@ -16,31 +15,26 @@ const PremiumPage: React.FC = () => {
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-        if (e.key.length > 1) return; // Ignore modifier keys, etc.
+        if (e.key.length > 1) return; 
 
         const newSecretCode = (secretCode + e.key).toUpperCase();
         
         if (SECRET_KEY.startsWith(newSecretCode)) {
             if (newSecretCode === SECRET_KEY) {
-                // Secret code entered correctly
                 if (currentUser) {
                     const tokenKey = `userTokens_${currentUser.uid}`;
                     const unlimitedTokens = 999999;
                     localStorage.setItem(tokenKey, String(unlimitedTokens));
-                    // Dispatch event to update header UI
                     window.dispatchEvent(new CustomEvent('tokenChange', { detail: { newTokens: unlimitedTokens } }));
                     alert('SECRET ACTIVATED: Unlimited access granted! ✨');
                 } else {
                     alert('Secret code detected, but you must be logged in to activate it.');
                 }
-                // Reset for next time
                 setSecretCode('');
             } else {
-                // The code is correct so far, wait for the next key
                 setSecretCode(newSecretCode);
             }
         } else {
-            // Wrong key pressed, reset
             setSecretCode('');
         }
     };
@@ -81,7 +75,6 @@ const PremiumPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-        {/* Free Plan */}
         <Card variant="light" className="flex flex-col">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-slate-700">Free</h2>
@@ -114,7 +107,6 @@ const PremiumPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Premium Plan */}
         <div className="relative">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-pink-600 rounded-2xl blur opacity-75"></div>
             <Card variant="light" className="relative flex flex-col h-full !border-violet-300">
@@ -154,7 +146,6 @@ const PremiumPage: React.FC = () => {
             </Card>
         </div>
         
-        {/* Special Plan */}
         <Card variant="light" className="flex flex-col border-2 border-amber-400">
             <div className="text-center">
                 <h2 className="text-2xl font-bold text-amber-600">Special Plan</h2>

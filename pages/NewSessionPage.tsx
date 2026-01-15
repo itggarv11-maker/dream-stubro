@@ -38,6 +38,7 @@ const NewSessionPage: React.FC = () => {
     const [fileContent, setFileContent] = useState('');
     const [fileName, setFileName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [syncProgress, setSyncProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,27 +76,31 @@ const NewSessionPage: React.FC = () => {
     const handleStartSession = async () => {
         if (!subject) return setError("Protocol Error: Select a subject module.");
         
+        setIsLoading(true);
+        setError(null);
+        setSyncProgress(10);
+
         try {
             if (contentSource === 'search') {
                 if (!chapterInfo.trim()) throw new Error("Please specify the Topic Name.");
                 
-                // IMPORTANT: Navigating immediately so the Dashboard can show the LOADING SCREEN
+                setSyncProgress(30);
+                const fetchedContent = await geminiService.fetchChapterContent(classLevel, subject!, chapterInfo, chapterDetails);
+                
+                if (!fetchedContent || fetchedContent.length < 200) {
+                    throw new Error("Neural Web Crawler could not find high-density data for this topic. Try adding board name (e.g. CBSE) in filters.");
+                }
+
+                setSyncProgress(80);
                 setGlobalSubject(subject);
                 setGlobalClassLevel(classLevel);
                 setGlobalIntent(intent);
-                
-                // Trigger the background search which sets 'searching' status in context
-                startBackgroundSearch(() => 
-                    geminiService.fetchChapterContent(classLevel, subject!, chapterInfo, chapterDetails)
-                );
-                
-                navigate('/app');
+                startSessionWithContent(fetchedContent);
+                setSyncProgress(100);
+                setTimeout(() => navigate('/app'), 800);
                 return;
             }
 
-            setIsLoading(true);
-            setError(null);
-            
             let finalContent = '';
             if (contentSource === 'paste') {
                 finalContent = pastedText;
@@ -104,25 +109,51 @@ const NewSessionPage: React.FC = () => {
                 if (!finalContent) throw new Error("No file data detected. Upload a PDF/DOCX.");
             } else if (contentSource === 'youtube') {
                 if (!mediaUrl) throw new Error("Enter a Media Link.");
+                setSyncProgress(50);
                 finalContent = await geminiService.fetchYouTubeTranscript(mediaUrl);
             }
 
             if (finalContent.trim().length < 50) throw new Error("Content too short to initialize Master session.");
             
+            setSyncProgress(90);
             setGlobalSubject(subject);
             setGlobalClassLevel(classLevel);
             setGlobalIntent(intent);
             startSessionWithContent(finalContent);
-            navigate('/app');
+            setSyncProgress(100);
+            setTimeout(() => navigate('/app'), 800);
         } catch (err: any) {
             setError(err.message);
             setIsLoading(false);
+            setSyncProgress(0);
         }
     };
+
+    if (isLoading && contentSource === 'search') {
+        return (
+            <div className="min-h-screen bg-[#010208] flex flex-col items-center justify-center p-10 text-center space-y-12">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-cyan-500 blur-[100px] opacity-20 neon-glow"></div>
+                    <div className="p-10 rounded-[3rem] bg-slate-900/50 border border-cyan-500/30 backdrop-blur-2xl relative z-10">
+                        <SearchIcon className="w-20 h-20 text-cyan-400 mx-auto animate-pulse mb-6" />
+                        <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter italic">NEURAL SYNC...</h2>
+                    </div>
+                </div>
+                <div className="w-full max-w-2xl space-y-6">
+                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${syncProgress}%` }} className="h-full bg-cyan-500 shadow-[0_0_20px_rgba(34,211,238,0.8)]"/>
+                    </div>
+                    <p className="text-cyan-400 font-mono-tech text-sm tracking-[0.5em] uppercase font-black">Crawler Node Active: Phase {syncProgress}%</p>
+                    <p className="text-slate-500 text-lg md:text-xl font-medium leading-relaxed italic">"Gathering high-precision NCERT data from the global knowledge graph..."</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-[1600px] mx-auto p-4 md:p-12 pb-40">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
+                {/* 01. ASTRA TARGET */}
                 <div className="lg:col-span-4 space-y-6 md:space-y-8">
                     <Card variant="dark" className="!p-6 md:!p-10 border-white/5 bg-slate-900/70 backdrop-blur-3xl shadow-2xl !rounded-3xl md:!rounded-[3rem]">
                         <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mb-8 md:mb-10">01. Astra Target</h2>
@@ -147,6 +178,7 @@ const NewSessionPage: React.FC = () => {
                         </div>
                     </Card>
 
+                    {/* 02. MISSION INTENT */}
                     <Card variant="dark" className="!p-6 md:!p-10 border-white/5 bg-slate-900/70 backdrop-blur-3xl !rounded-3xl md:!rounded-[3rem]">
                         <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mb-8 md:mb-10">02. Mission Intent</h2>
                         <div className="grid grid-cols-1 gap-3 md:gap-4">
@@ -169,6 +201,7 @@ const NewSessionPage: React.FC = () => {
                     </Card>
                 </div>
 
+                {/* KNOWLEDGE CORE */}
                 <div className="lg:col-span-8">
                     <Card variant="dark" className="!p-6 md:!p-12 min-h-[500px] md:min-h-[700px] flex flex-col bg-slate-900/40 relative overflow-hidden !rounded-3xl md:!rounded-[4rem] shadow-[0_40px_150px_rgba(0,0,0,0.8)]">
                         <div className="absolute top-0 right-0 p-10 md:p-20 opacity-[0.02] pointer-events-none">

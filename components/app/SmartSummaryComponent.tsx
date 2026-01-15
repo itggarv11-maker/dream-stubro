@@ -13,17 +13,16 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
     // Stage 1: Critical Null Check
     if (!summary) return null;
 
-    // Stage 2: Recursive Normalization
-    // We force a valid structure even if the AI returns a partially broken object.
+    // Stage 2: Neural Normalization
+    // Heals broken data structures from AI before rendering
     const safeSummary = {
         title: summary.title || "Study Synthesis",
         coreConcepts: Array.isArray(summary.coreConcepts) ? summary.coreConcepts : [],
         examSpotlight: Array.isArray(summary.examSpotlight) ? summary.examSpotlight : [],
-        stuBroTip: summary.stuBroTip || "Trust the process.",
-        // Fix for the specific error: "Cannot read properties of undefined (reading 'analogy')"
+        stuBroTip: summary.stuBroTip || "Logic synthesis complete. Focus on high-recall nodes.",
         visualAnalogy: (typeof summary.visualAnalogy === 'object' && summary.visualAnalogy !== null) 
             ? { 
-                analogy: summary.visualAnalogy.analogy || "No analogy found.", 
+                analogy: summary.visualAnalogy.analogy || "No analogy mapped.", 
                 explanation: summary.visualAnalogy.explanation || "" 
               }
             : { 
@@ -32,10 +31,9 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
               }
     };
 
-    const va = safeSummary.visualAnalogy;
-
     return (
         <div className="w-full space-y-12 pb-20">
+            {/* Header Synthesis */}
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -50,6 +48,7 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Concepts Core */}
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -70,16 +69,17 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
                                     <LightBulbIcon className="w-12 h-12" />
                                 </div>
                                 <dt className="font-black text-xl text-white group-hover:text-violet-400 transition-colors uppercase tracking-tight">
-                                    <MathRenderer text={concept?.term ?? "Concept"} />
+                                    <MathRenderer text={concept?.term ?? "Concept Node"} />
                                 </dt>
                                 <dd className="text-sm text-slate-400 mt-4 leading-relaxed font-medium">
-                                    <MathRenderer text={concept?.definition ?? ""} />
+                                    <MathRenderer text={concept?.definition ?? "Definition awaiting parameters."} />
                                 </dd>
                             </Card>
                         ))}
                     </div>
                 </motion.div>
 
+                {/* Exam Target & Analogy */}
                 <motion.div 
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -90,20 +90,20 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
                         <div className="p-3 bg-pink-600 rounded-xl">
                             <SparklesIcon className="w-6 h-6 text-white"/>
                         </div>
-                        <h2 className="text-2xl font-black tracking-widest uppercase text-white/80">Target</h2>
+                        <h2 className="text-2xl font-black tracking-widest uppercase text-white/80">Target Nodes</h2>
                     </div>
                     <div className="space-y-4">
                         {safeSummary.examSpotlight.map((point, index) => (
                             <div key={index} className="p-6 rounded-3xl bg-pink-500/5 border border-pink-500/10 relative overflow-hidden group hover:bg-pink-500/10 transition-all">
                                 <div className="absolute top-0 left-0 w-1 h-full bg-pink-500 group-hover:w-2 transition-all"></div>
                                 <p className="text-sm text-slate-300 font-bold leading-relaxed">
-                                    <MathRenderer text={point ?? ""} />
+                                    <MathRenderer text={point ?? "Exam-critical parameter."} />
                                 </p>
                             </div>
                         ))}
                     </div>
                     
-                    {va.analogy && (
+                    {safeSummary.visualAnalogy.analogy && (
                         <Card variant="glass" className="!p-8 border-cyan-500/20 bg-cyan-500/5 relative group">
                             <div className="absolute -top-4 -right-4 w-12 h-12 bg-cyan-500 rounded-full blur-2xl opacity-20"></div>
                             <div className="flex items-center gap-3 mb-6">
@@ -111,11 +111,11 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
                                 <h3 className="font-black uppercase tracking-[0.2em] text-cyan-400 text-[10px]">Guru Logic</h3>
                             </div>
                             <p className="font-black text-white italic text-xl leading-tight group-hover:text-cyan-300 transition-colors">
-                                "{va.analogy}"
+                                "{safeSummary.visualAnalogy.analogy}"
                             </p>
-                            {va.explanation && (
+                            {safeSummary.visualAnalogy.explanation && (
                                 <p className="text-xs text-slate-400 mt-5 leading-relaxed font-medium">
-                                    {va.explanation}
+                                    {safeSummary.visualAnalogy.explanation}
                                 </p>
                             )}
                         </Card>
@@ -123,6 +123,7 @@ const SmartSummaryComponent: React.FC<SmartSummaryComponentProps> = ({ summary }
                 </motion.div>
             </div>
             
+            {/* Neural Memo */}
             <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

@@ -2,7 +2,6 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  // Fix: Use type assertion for process.cwd() as the environment type definition for 'process' might be incomplete
   const env = loadEnv(mode, (process as any).cwd(), '');
   
   return {

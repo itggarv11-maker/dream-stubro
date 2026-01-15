@@ -7,7 +7,7 @@ import {
     signInWithPopup,
     updateProfile
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../services/firebase';
 import { FirebaseUser } from '../types';
 
@@ -90,11 +90,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginWithGoogle = async () => {
       const res = await signInWithPopup(auth, googleProvider);
       const userRef = doc(db, 'users', res.user.uid);
-      await setDoc(userRef, {
-          name: res.user.displayName,
-          email: res.user.email,
-          tokens: 100
-      }, { merge: true });
+      const snap = await getDoc(userRef);
+      
+      // If user doesn't exist in our DB, create them with defaults
+      if (!snap.exists()) {
+          await setDoc(userRef, {
+              name: res.user.displayName,
+              email: res.user.email,
+              tokens: 100,
+              classLevel: "Class 10", // Default, user can change in profile
+              createdAt: new Date().toISOString()
+          });
+      } else {
+          // Update profile name just in case it changed on Google
+          await setDoc(userRef, {
+              name: res.user.displayName,
+              email: res.user.email,
+          }, { merge: true });
+      }
       return res;
   };
 
