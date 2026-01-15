@@ -26,7 +26,7 @@ const enforceToken = async () => {
 
 /**
  * WEB CRAWLER: Guaranteed 101% Logic.
- * Uses gemini-3-pro-preview for advanced tool use.
+ * Uses gemini-2.5-flash-preview for tool use.
  */
 export const fetchChapterContent = async (level: ClassLevel, subject: Subject, chapter: string, details: string): Promise<string> => {
     await enforceToken();
@@ -37,7 +37,7 @@ export const fetchChapterContent = async (level: ClassLevel, subject: Subject, c
     OUTPUT: Return the FULL descriptive text of the chapter concepts, NOT a brief summary. Ensure accuracy for the Indian curriculum.`;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: prompt,
         config: { 
             tools: [{ googleSearch: {} }],
@@ -57,12 +57,11 @@ export const solveMathsBrahmastra = async (problem: string, level: ClassLevel, i
         : { parts: [{ text: `Grade Level: ${level}. Problem: ${problem}. Solve with 101% precision. No $ signs. Output valid JSON only.` }] };
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents,
         config: {
             systemInstruction: "You are StuBro AI Brahmastra. Guaranteed accuracy. No LaTeX ($). Output valid JSON.",
             responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 32768 }
         }
     });
     
@@ -74,7 +73,7 @@ export const generateSmartSummary = async (subject: Subject, classLevel: ClassLe
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash-preview",
         contents: `Subject: ${subject}. Level: ${classLevel}. Context: ${sourceText}`,
         config: { 
             systemInstruction: "Create a precision summary. NO DOLLAR SIGNS ($). Output strict JSON according to SmartSummary interface.",
@@ -89,7 +88,7 @@ export const generateQuiz = async (subject: Subject, classLevel: ClassLevel, sou
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash-preview",
         contents: `Generate ${num} quiz questions from: ${sourceText}`,
         config: { 
             systemInstruction: "Output JSON with a 'questions' array. No $ signs.",
@@ -105,7 +104,7 @@ export const fetchYouTubeTranscript = async (url: string): Promise<string> => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Search and retrieve transcript/concepts for this video: ${url}.`,
         config: { tools: [{ googleSearch: {} }] }
     });
@@ -116,7 +115,7 @@ export const fetchYouTubeTranscript = async (url: string): Promise<string> => {
 export const startMathDoubtChat = (solutionContext: MathsSolution): Chat => {
     const ai = getAI();
     return ai.chats.create({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         config: { systemInstruction: `You are the DOUBT SOLVER. Solution Context: ${JSON.stringify(solutionContext)}. Never use $ signs or LaTeX delimiters.` }
     });
 };
@@ -132,7 +131,7 @@ export const generateMindMapFromText = async (text: string, level: ClassLevel): 
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Generate mind map JSON for ${level}: ${text}`,
         config: { 
             systemInstruction: "Output a recursive MindMapNode JSON. No $ signs.",
@@ -154,7 +153,7 @@ export const generateQuestionPaper = async (
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Generate board paper for ${subject}, ${numQuestions} questions. Type: ${questionTypes}. Difficulty: ${difficulty}. Marks: ${totalMarks}. Context: ${text}`,
         config: { 
             systemInstruction: "Create a formal question paper. Output JSON. No $ signs.",
@@ -169,7 +168,7 @@ export const generateVivaQuestions = async (topic: string, level: string, num: n
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Viva questions for ${topic}, grade ${level}. Return Array of strings.`,
         config: { 
             systemInstruction: "Output a JSON array of strings only.",
@@ -184,7 +183,7 @@ export const generateGameLevel = async (text: string): Promise<GameLevel> => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Chapter Conquest JSON for: ${text}`,
         config: { 
             systemInstruction: "Create a 2D grid game level JSON. No $ signs.",
@@ -199,7 +198,7 @@ export const generateLabExperiment = async (sub: Subject, topic: string, safetyL
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Lab experiment for ${sub}: ${topic}. Safety: ${safetyLevel}`,
         config: { 
             systemInstruction: "Create a LabExperiment JSON. No $ signs.",
@@ -213,7 +212,7 @@ export const generateLabExperiment = async (sub: Subject, topic: string, safetyL
 export const createHistoricalChatSession = (figure: string): Chat => {
     const ai = getAI();
     return ai.chats.create({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         config: { systemInstruction: `You are ${figure}. Respond in character. No $ signs. No LaTeX.` }
     });
 };
@@ -222,7 +221,7 @@ export const generateAnalogies = async (concept: string): Promise<Analogy[]> => 
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Analogies for ${concept}`,
         config: { 
             systemInstruction: "Return a JSON array of Analogy objects.",
@@ -237,7 +236,7 @@ export const predictExamPaper = async (text: string, difficulty: string, totalMa
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Predict ${difficulty} exam for ${subject}. Total Marks: ${totalMarks}. Context: ${text}`,
         config: { 
             systemInstruction: "Predict exam questions based on context. JSON output. No $ signs.",
@@ -252,7 +251,7 @@ export const generateSimulationExperiment = async (text: string) => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `ThreeJS simulation design JSON for: ${text}`,
         config: { 
             systemInstruction: "Output valid JSON for simulation steps. No $ signs.",
@@ -267,7 +266,7 @@ export const gradeAnswerSheet = async (paper: string, images: any[]): Promise<Gr
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: { parts: [...images, { text: `Grade student sheet for: ${paper}` }] },
         config: { 
             systemInstruction: "Grade the answer sheet accurately. JSON output only. No $ signs.",
@@ -282,7 +281,7 @@ export const generateCareerDivination = async (formData: any): Promise<CareerRoa
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Career roadmap for: ${JSON.stringify(formData)}`,
         config: { 
             systemInstruction: "Return a CareerRoadmap JSON. No $ signs.",
@@ -297,7 +296,7 @@ export const evaluateVivaAudioAnswer = async (questionText: string, audioPart: a
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: { parts: [audioPart, { text: `Evaluate answer for: ${questionText}` }] },
         config: { 
             systemInstruction: "Evaluate audio answer. JSON output with transcription, feedback, and marksAwarded.",
@@ -312,7 +311,7 @@ export const evaluateVivaTextAnswer = async (questionText: string, answerText: s
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: { parts: [{ text: `Evaluate text answer: "${answerText}" for: ${questionText}` }] },
         config: { 
             systemInstruction: "Evaluate text answer. JSON output with transcription (echo), feedback, and marksAwarded.",
@@ -326,7 +325,7 @@ export const evaluateVivaTextAnswer = async (questionText: string, answerText: s
 export const createLiveDoubtsSession = (topic: string, level: ClassLevel): Chat => {
     const ai = getAI();
     return ai.chats.create({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         config: { systemInstruction: `You are an AI tutor for "${topic}" at ${level}. Clear doubts instantly. No $ signs.` }
     });
 };
@@ -335,7 +334,7 @@ export const sendAudioForTranscriptionAndResponse = async (chat: Chat, audioPart
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: { parts: [audioPart, { text: "Transcribe and answer my doubt." }] },
         config: { 
             responseMimeType: "application/json",
@@ -357,7 +356,7 @@ export const breakdownTextIntoTopics = async (text: string) => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Breakdown text into topics for visuals: ${text}`,
         config: { 
             responseMimeType: "application/json",
@@ -403,7 +402,7 @@ export const generateDebateTopics = async (text: string) => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Debate topics from: ${text}`,
         config: { 
             systemInstruction: "Return a JSON array of strings.",
@@ -417,7 +416,7 @@ export const generateDebateTopics = async (text: string) => {
 export const startDebateSession = (topic: string): Chat => {
     const ai = getAI();
     return ai.chats.create({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         config: { systemInstruction: `You are debating the motion: "${topic}". Be critical and rigorous. No $ signs.` }
     });
 };
@@ -433,7 +432,7 @@ export const getDebateResponseToAudio = async (chat: Chat, audioPart: any) => {
     await enforceToken();
     const ai = getAI();
     const trans = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: { parts: [audioPart, { text: "Transcribe argument." }] }
     });
     const transcription = trans.text || "";
@@ -445,7 +444,7 @@ export const evaluateDebate = async (history: DebateTurn[]): Promise<DebateScore
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Evaluate debate history: ${JSON.stringify(history)}`,
         config: { 
             systemInstruction: "Output a DebateScorecard JSON. No $ signs.",
@@ -460,7 +459,7 @@ export const analyzeLiteraryText = async (text: string): Promise<LiteraryAnalysi
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Analyze literary work: ${text}`,
         config: { 
             systemInstruction: "Output a LiteraryAnalysis JSON. No $ signs.",
@@ -474,7 +473,7 @@ export const analyzeLiteraryText = async (text: string): Promise<LiteraryAnalysi
 export const createDilemmaChatSession = (topic: string): Chat => {
     const ai = getAI();
     return ai.chats.create({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         config: { systemInstruction: `Present ethical dilemmas for: ${topic}. Challenging reasoning. No $ signs.` }
     });
 };
@@ -483,7 +482,7 @@ export const exploreWhatIfHistory = async (scenario: string) => {
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Explore historical "What If": ${scenario}`,
     });
     await deductToken();
@@ -494,7 +493,7 @@ export const findRealWorldApplications = async (concept: string): Promise<RealWo
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Real-world apps for: ${concept}`,
         config: { 
             systemInstruction: "Return a JSON array of RealWorldApplication objects.",
@@ -509,7 +508,7 @@ export const generateLearningPath = async (topic: string, subject: Subject, leve
     await enforceToken();
     const ai = getAI();
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-flash-preview',
         contents: `Personalized path for ${topic} at ${level}. Quiz results: ${JSON.stringify(quizResults)}`,
         config: { 
             systemInstruction: "Output a LearningPath JSON. No $ signs.",
