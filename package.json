@@ -1,0 +1,40 @@
+
+{
+  "name": "stubro-ai-omega",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.11.0",
+    "firebase": "^10.12.3",
+    "framer-motion": "11.0.8",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.22.3",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "pdfjs-dist": "^4.5.136",
+    "mammoth": "^1.11.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "reactflow": "^11.11.4",
+    "three": "^0.162.0",
+    "@react-three/fiber": "^8.15.19",
+    "@react-three/drei": "^9.102.6"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.1"
+  }
+}
