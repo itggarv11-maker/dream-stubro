@@ -53,6 +53,10 @@ const AppContent: React.FC = () => {
           <Route path="/question-paper" element={<ProtectedRoute><QuestionPaperPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/group-quiz" element={<ProtectedRoute><GroupQuizPage /></ProtectedRoute>} />
+          
+          {/* LIVE SHAREABLE QUIZ ACCESS */}
+          <Route path="/live/:roomCode" element={<GroupQuizPage />} />
+          
           <Route path="/career-guidance" element={<ProtectedRoute><CareerGuidancePage /></ProtectedRoute>} />
           <Route path="/study-planner" element={<ProtectedRoute><StudyPlannerPage /></ProtectedRoute>} />
           <Route path="/mind-map" element={<ProtectedRoute><MindMapPage /></ProtectedRoute>} />

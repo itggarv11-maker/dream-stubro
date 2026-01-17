@@ -12,29 +12,33 @@ const DiagramRenderer: React.FC<DiagramRendererProps> = ({ spec, className = "" 
   const getCoord = (pointName: string): [number, number] => (spec.points && spec.points[pointName]) || [0, 0];
 
   return (
-    <div className={`my-4 md:my-6 p-4 md:p-8 glass-card !rounded-2xl md:!rounded-[3rem] border-cyan-500/30 bg-slate-950/80 flex flex-col items-center shadow-[0_0_50px_rgba(34,211,238,0.15)] ${className}`}>
-      <div className="w-full flex justify-center overflow-hidden">
+    <div className={`my-8 p-6 md:p-12 glass-card !rounded-[3rem] border-cyan-500/20 bg-slate-950/90 flex flex-col items-center shadow-[0_0_80px_rgba(0,0,0,0.8)] relative overflow-hidden ${className}`}>
+      {/* Decorative Blueprint Grid */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#22d3ee 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }}></div>
+      
+      <div className="w-full flex justify-center overflow-visible relative z-10">
         <svg 
           width="100%" 
           height="auto" 
-          viewBox={`0 0 ${spec.width || 300} ${spec.height || 300}`} 
-          className="max-w-full md:max-w-md drop-shadow-[0_0_20px_rgba(34,211,238,0.4)] overflow-visible"
+          viewBox={`0 0 ${spec.width || 400} ${spec.height || 400}`} 
+          className="max-w-full md:max-w-lg drop-shadow-[0_0_30px_rgba(34,211,238,0.3)] overflow-visible"
         >
           <defs>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
+            <filter id="astra-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
+            <linearGradient id="line-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#22d3ee" />
+            </linearGradient>
           </defs>
 
-          {/* Circles */}
+          {/* Circles with glow */}
           {(spec.circles || []).map((c, i) => {
             const coords = getCoord(c.center);
             return (
-              <circle key={i} cx={coords[0]} cy={coords[1]} r={c.radius} fill="none" stroke="#22d3ee" strokeWidth="2.5" filter="url(#glow)" />
+              <circle key={i} cx={coords[0]} cy={coords[1]} r={c.radius} fill="rgba(34, 211, 238, 0.05)" stroke="url(#line-grad)" strokeWidth="3" filter="url(#astra-glow)" />
             );
           })}
 
@@ -45,39 +49,41 @@ const DiagramRenderer: React.FC<DiagramRendererProps> = ({ spec, className = "" 
             return (
               <line 
                 key={i} x1={p1[0]} y1={p1[1]} x2={p2[0]} y2={p2[1]} 
-                stroke="#f8fafc" strokeWidth="2" 
-                strokeDasharray={l.dashed ? "6,4" : "0"} 
+                stroke="#f8fafc" strokeWidth="2.5" 
+                strokeDasharray={l.dashed ? "8,6" : "0"} 
                 strokeLinecap="round"
+                filter="url(#astra-glow)"
               />
             );
           })}
 
-          {/* Points & Labels */}
+          {/* Points & Neon Labels */}
           {Object.entries(spec.points || {}).map(([name, coords], i) => {
             const [x, y] = coords as [number, number];
             return (
               <g key={i}>
-                <circle cx={x} cy={y} r="4" fill="#8b5cf6" stroke="white" strokeWidth="1" />
-                <text x={x + 8} y={y - 8} fill="#f1f5f9" fontSize="14" fontWeight="black" fontFamily="monospace" style={{ textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>
+                <circle cx={x} cy={y} r="5" fill="#22d3ee" stroke="#fff" strokeWidth="2" />
+                <rect x={x + 10} y={y - 25} width="24" height="24" rx="4" fill="rgba(15, 23, 42, 0.8)" stroke="rgba(255,255,255,0.1)" />
+                <text x={x + 14} y={y - 8} fill="#22d3ee" fontSize="16" fontWeight="900" fontFamily="JetBrains Mono, monospace">
                   {name}
                 </text>
               </g>
             );
           })}
 
-          {/* Angles */}
+          {/* Right Angles */}
           {(spec.angles || []).map((ang, i) => {
             const [vx, vy] = getCoord(ang.vertex);
             if (ang.isRightAngle) {
-              return <rect key={i} x={vx - 6} y={vy - 6} width="12" height="12" fill="none" stroke="#fbbf24" strokeWidth="2" />;
+              return <rect key={i} x={vx - 8} y={vy - 8} width="16" height="16" fill="none" stroke="#fbbf24" strokeWidth="3" strokeDasharray="2,2" />;
             }
             return null;
           })}
         </svg>
       </div>
-      <div className="mt-6 md:mt-8 flex items-center gap-2">
-         <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-cyan-400 animate-ping"></div>
-         <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] md:tracking-[0.5em]">ASTRA RENDER ENGINE v2.1</p>
+      <div className="mt-10 flex items-center gap-4 bg-slate-900/50 px-6 py-2 rounded-full border border-white/5">
+         <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_#22d3ee]"></div>
+         <p className="text-[10px] font-black text-cyan-500/80 uppercase tracking-[0.5em] italic">GEOMETRY CORE: ACCURACY 101%</p>
       </div>
     </div>
   );

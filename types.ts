@@ -33,26 +33,6 @@ export interface DiagramSpec {
   labels: { pos: [number, number]; text: string; color?: string }[];
 }
 
-export interface CareerRoadmap {
-  title: string;
-  vision: string;
-  financialMilestones: string[];
-  classByClassRoadmap: {
-    grade: string;
-    focus: string[];
-    exams: string[];
-    coachingRecommendation: string;
-  }[];
-  jobOccupations: { title: string; scope: string; salaryRange: string }[];
-}
-
-export interface RevisionCurriculum {
-  diagnosis: string;
-  weakNodes: string[];
-  sevenDayPlan: { day: number; topic: string; tool: string; goal: string }[];
-  guaranteedMarksTarget: string;
-}
-
 export interface MathsSolution {
   concept: string;
   formula: string;
@@ -170,6 +150,41 @@ export interface DebateScorecard {
   improvementSuggestion: string;
 }
 
+// ==========================================
+// LIVE MULTIPLAYER QUIZ TYPES
+// ==========================================
+
+export type LiveQuizStatus = 'lobby' | 'live' | 'finished';
+
+export interface LiveQuizRoom {
+  id: string;
+  roomCode: string;
+  hostUid: string;
+  status: LiveQuizStatus;
+  currentQuestionIndex: number;
+  questionStartTime: any; // Firestore Timestamp
+  title: string;
+  subject: string;
+  createdAt: any;
+}
+
+export interface LiveQuizPlayer {
+  uid: string;
+  name: string;
+  score: number;
+  hasAnswered: boolean;
+  answerTimeMs: number;
+  isConnected: boolean;
+  joinedAt: any;
+}
+
+export interface LiveQuizQuestion {
+  questionText: string;
+  options: string[];
+  correctOptionIndex: number;
+  explanation: string;
+}
+
 export interface PlayerPosition {
   x: number;
   y: number;
@@ -228,5 +243,23 @@ export interface LearningPath {
     topic: string;
     goal: string;
     resources: string[];
+  }[];
+}
+
+// Added missing CareerRoadmap interface
+export interface CareerRoadmap {
+  title: string;
+  vision: string;
+  financialMilestones: string[];
+  classByClassRoadmap: {
+    grade: string;
+    focus: string[];
+    exams: string[];
+    coachingRecommendation: string;
+  }[];
+  jobOccupations: {
+    title: string;
+    scope: string;
+    salaryRange: string;
   }[];
 }

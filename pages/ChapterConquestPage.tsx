@@ -1,130 +1,67 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GameLevel, PlayerPosition, Interaction } from '../types';
-import * as geminiService from '../services/geminiService';
-import * as userService from '../services/userService';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { 
+    OrbitControls, Stars, Float, 
+    Environment, Text, ContactShadows, PresentationControls, 
+    MeshDistortMaterial, PerspectiveCamera, Sparkles, PointLightHelper
+} from '@react-three/drei';
+import * as THREE from 'three';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useContent } from '../contexts/ContentContext';
+import * as geminiService from '../services/geminiService';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Spinner from '../components/common/Spinner';
+import { SparklesIcon, RocketLaunchIcon, CheckCircleIcon } from '../components/icons';
 
 type GameState = 'generating' | 'playing' | 'interaction' | 'feedback' | 'completed' | 'error';
 
-const TILE_SIZE = 40;
-
 const ChapterConquestPage: React.FC = () => {
-    const { extractedText, subject } = useContent();
+    const { extractedText } = useContent();
     const navigate = useNavigate();
 
     const [gameState, setGameState] = useState<GameState>('generating');
-    const [level, setLevel] = useState<GameLevel | null>(null);
-    const [playerPosition, setPlayerPosition] = useState<PlayerPosition>({ x: 0, y: 0 });
+    const [gameData, setGameData] = useState<any>(null);
     const [score, setScore] = useState(0);
-
-    const [activeInteraction, setActiveInteraction] = useState<Interaction | null>(null);
+    const [activeInteraction, setActiveInteraction] = useState<any>(null);
     const [interactionAnswer, setInteractionAnswer] = useState('');
     const [feedback, setFeedback] = useState<{ correct: boolean; message: string } | null>(null);
-    const [completedInteractions, setCompletedInteractions] = useState<Set<number>>(new Set());
-    const [error, setError] = useState<React.ReactNode | null>(null);
+    const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!extractedText) {
-             setError(
-                <span>
-                    No content loaded. Please <button onClick={() => navigate('/new-session')} className="text-violet-600 underline font-bold">start a new session</button> to play.
-                </span>
-            );
+            setError("Knowledge Node missing. Start a new session first.");
             setGameState('error');
             return;
         }
 
-        const initLevel = async () => {
+        const initGame = async () => {
             try {
-                const generatedLevel = await geminiService.generateGameLevel(extractedText);
-                setLevel(generatedLevel);
-                setPlayerPosition(generatedLevel.player_start || { x: 0, y: 0 });
+                const data = await geminiService.generateGameLevel(extractedText);
+                setGameData(data);
                 setGameState('playing');
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to generate level");
+                setError("Neural build failure.");
                 setGameState('error');
             }
         };
+        initGame();
+    }, [extractedText]);
 
-        initLevel();
-    }, [extractedText, navigate]);
-
-    useEffect(() => {
-        if (gameState === 'completed' && level) {
-            userService.saveActivity('other', `Chapter Conquest: ${level.title}`, subject || 'General', {
-                score: score,
-                maxScore: (level.interactions || []).length,
-                level: level.title
-            });
-        }
-    }, [gameState, level, score, subject]);
-
-    const movePlayer = useCallback((dx: number, dy: number) => {
-        if (gameState !== 'playing' || !level || !level.grid) return;
-        setPlayerPosition(prev => {
-            const newX = prev.x + dx;
-            const newY = prev.y + dy;
-            
-            if (newY < 0 || newY >= (level.grid || []).length || newX < 0 || newX >= (level.grid[0] || []).length) {
-                return prev;
-            }
-
-            if (level.grid[newY][newX].type === 'wall') {
-                return prev;
-            }
-
-            return { x: newX, y: newY };
-        });
-    }, [gameState, level]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (gameState !== 'playing') return;
-            if(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                e.preventDefault();
-            }
-            switch(e.key) {
-                case 'ArrowUp': case 'w': movePlayer(0, -1); break;
-                case 'ArrowDown': case 's': movePlayer(0, 1); break;
-                case 'ArrowLeft': case 'a': movePlayer(-1, 0); break;
-                case 'ArrowRight': case 'd': movePlayer(1, 0); break;
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [movePlayer, gameState]);
-
-    useEffect(() => {
-        if (!level || !level.grid || gameState !== 'playing') return;
-        
-        if (playerPosition.y >= level.grid.length || playerPosition.x >= level.grid[0].length) return;
-
-        const tile = level.grid[playerPosition.y][playerPosition.x];
-        const interaction = (level.interactions || []).find(i => i.position.x === playerPosition.x && i.position.y === playerPosition.y);
-        
-        if (interaction && !completedInteractions.has(interaction.id)) {
-            setActiveInteraction(interaction);
-            setGameState('interaction');
-            return;
-        }
-
-        if (tile && tile.type === 'exit') {
-            setGameState('completed');
-        }
-    }, [playerPosition, level, gameState, completedInteractions]);
+    const handleOrbCapture = (orb: any) => {
+        if (completedIds.has(orb.id)) return;
+        setActiveInteraction(orb);
+        setGameState('interaction');
+    };
 
     const handleInteractionSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!activeInteraction) return;
-        
         const isCorrect = interactionAnswer.trim().toLowerCase() === activeInteraction.correct_answer.toLowerCase();
         if (isCorrect) {
             setScore(s => s + 1);
-            setCompletedInteractions(prev => new Set(prev).add(activeInteraction.id));
+            setCompletedIds(prev => new Set(prev).add(activeInteraction.id));
             setFeedback({ correct: true, message: activeInteraction.success_message });
         } else {
             setFeedback({ correct: false, message: activeInteraction.failure_message });
@@ -132,115 +69,182 @@ const ChapterConquestPage: React.FC = () => {
         setGameState('feedback');
     };
 
-    const handleContinue = () => {
-        setGameState('playing');
-        setActiveInteraction(null);
-        setInteractionAnswer('');
-        setFeedback(null);
-    };
-
-    const renderGrid = () => {
-        if (!level || !level.grid) return null;
-        return (
-             <div className="relative mx-auto bg-slate-800 rounded-lg overflow-hidden shadow-2xl" style={{ 
-                 width: (level.grid[0] || []).length * TILE_SIZE, 
-                 height: level.grid.length * TILE_SIZE 
-             }}>
-                 {(level.grid || []).map((row, y) => (row || []).map((tile, x) => {
-                     let bg = 'bg-slate-700'; 
-                     if (tile.type === 'wall') bg = 'bg-slate-900';
-                     if (tile.type === 'exit') bg = 'bg-amber-500';
-                     
-                     const interaction = (level.interactions || []).find(i => i.position.x === x && i.position.y === y);
-                     if (interaction) {
-                         bg = completedInteractions.has(interaction.id) ? 'bg-purple-900' : 'bg-purple-500';
-                     }
-
-                     return (
-                         <div key={`${x}-${y}`} className={`absolute ${bg} border border-slate-600/20`} style={{
-                             width: TILE_SIZE,
-                             height: TILE_SIZE,
-                             left: x * TILE_SIZE,
-                             top: y * TILE_SIZE
-                         }} />
-                     );
-                 }))}
-                 <div className="absolute bg-green-400 rounded-full shadow-lg shadow-green-400/50 transition-all duration-200 ease-linear" style={{
-                     width: TILE_SIZE * 0.8,
-                     height: TILE_SIZE * 0.8,
-                     left: playerPosition.x * TILE_SIZE + (TILE_SIZE * 0.1),
-                     top: playerPosition.y * TILE_SIZE + (TILE_SIZE * 0.1),
-                     zIndex: 10
-                 }} />
-             </div>
-        );
-    };
-
-    if (gameState === 'generating') return <div className="flex flex-col items-center py-20"><Spinner className="w-12 h-12" colorClass="bg-violet-600"/><p className="mt-4 text-slate-600 font-semibold">Building your level...</p></div>;
-    if (gameState === 'error') return <Card variant="light" className="text-center text-red-600"><h2 className="text-xl font-bold">Error</h2><p>{error}</p></Card>;
+    if (gameState === 'generating') return (
+        <div className="flex flex-col items-center justify-center py-40 gap-10">
+            <div className="relative">
+                <div className="absolute inset-0 bg-violet-600 blur-[150px] opacity-30 animate-pulse"></div>
+                <Spinner className="w-24 h-24 relative z-10" colorClass="bg-violet-500" />
+            </div>
+            <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter animate-pulse">Designing Reality...</h2>
+        </div>
+    );
 
     return (
-        <div className="flex flex-col items-center space-y-6">
-            <Card variant="dark" className="w-full max-w-4xl !p-4 flex justify-between items-center text-white">
-                <div>
-                    <h2 className="text-xl font-bold">{level?.title}</h2>
-                    <p className="text-sm text-slate-300">Goal: {level?.goal}</p>
-                </div>
-                <div className="text-right">
-                    <p className="font-bold text-lg text-green-400">Score: {score}</p>
-                    <p className="text-xs text-slate-400">Use Arrow Keys to Move</p>
-                </div>
-            </Card>
-
-            <div className="overflow-auto w-full flex justify-center p-4">
-                {renderGrid()}
+        <div className="w-full h-screen fixed inset-0 bg-[#010208] z-[50]">
+            {/* 3D Game World */}
+            <div className="absolute inset-0 z-0">
+                <Canvas shadows>
+                    <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                    <Sparkles count={200} scale={20} size={2} speed={0.4} color="#8b5cf6" />
+                    <ambientLight intensity={0.2} />
+                    <pointLight position={[10, 10, 10]} intensity={1.5} color="#8b5cf6" castShadow />
+                    <Suspense fallback={null}>
+                        <Environment preset="night" />
+                        <KnowledgeNebula 
+                            interactions={gameData?.interactions || []} 
+                            completedIds={completedIds}
+                            onOrbClick={handleOrbCapture}
+                        />
+                    </Suspense>
+                    <OrbitControls 
+                        enablePan={false} 
+                        enableZoom={true} 
+                        minDistance={5} 
+                        maxDistance={30}
+                        autoRotate 
+                        autoRotateSpeed={0.5} 
+                    />
+                </Canvas>
             </div>
 
-            {gameState === 'interaction' && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <Card variant="light" className="max-w-md w-full animate-in fade-in zoom-in duration-300">
-                        <h3 className="text-xl font-bold text-slate-800 mb-4">Challenge!</h3>
-                        <p className="text-slate-700 mb-4 text-lg">{activeInteraction?.prompt}</p>
-                        <form onSubmit={handleInteractionSubmit} className="space-y-4">
-                            <input 
-                                autoFocus
-                                type="text" 
-                                value={interactionAnswer} 
-                                onChange={e => setInteractionAnswer(e.target.value)}
-                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
-                                placeholder="Type your answer..."
-                            />
-                            <Button type="submit" className="w-full">Submit</Button>
-                        </form>
-                    </Card>
+            {/* HUD */}
+            <div className="absolute top-10 left-10 right-10 flex justify-between items-start pointer-events-none z-10">
+                <div className="glass-card !rounded-2xl p-6 border-white/10 pointer-events-auto">
+                    <h1 className="text-2xl font-black text-white uppercase italic tracking-widest">{gameData?.title || "CONQUEST"}</h1>
+                    <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-[0.4em] mt-1">{gameData?.goal}</p>
                 </div>
-            )}
-
-            {gameState === 'feedback' && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                     <Card variant="light" className={`max-w-md w-full text-center border-4 ${feedback?.correct ? 'border-green-400' : 'border-red-400'}`}>
-                        <h3 className={`text-2xl font-bold mb-2 ${feedback?.correct ? 'text-green-600' : 'text-red-600'}`}>
-                            {feedback?.correct ? 'Correct!' : 'Incorrect'}
-                        </h3>
-                        <p className="text-slate-700 mb-6">{feedback?.message}</p>
-                        <Button onClick={handleContinue} className="w-full">Continue</Button>
-                    </Card>
+                <div className="text-right space-y-4">
+                    <div className="glass-card !rounded-2xl p-6 border-white/10 text-center pointer-events-auto">
+                        <p className="text-5xl font-black text-violet-500 italic leading-none">{score}</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">KNOWLEDGE SYNCS</p>
+                    </div>
+                    <Button variant="outline" onClick={() => setGameState('completed')} className="pointer-events-auto h-12 !text-[9px] uppercase tracking-[0.3em]">EXIT REALITY</Button>
                 </div>
-            )}
+            </div>
 
-            {gameState === 'completed' && (
-                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                    <Card variant="light" className="max-w-lg w-full text-center !p-8">
-                        <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-pink-600 mb-4">Level Conquered!</h2>
-                        <p className="text-xl text-slate-600 mb-8">You have mastered this chapter.</p>
-                        <div className="bg-slate-100 p-4 rounded-lg mb-8">
-                             <p className="text-2xl font-bold text-slate-800">Final Score: {score} / {level?.interactions?.length || 0}</p>
+            {/* Modals */}
+            <AnimatePresence>
+                {gameState === 'interaction' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-black/80 backdrop-blur-3xl flex items-center justify-center p-6">
+                        <Card variant="dark" className="max-w-2xl w-full !p-12 border-violet-500/30 relative">
+                            <h3 className="text-4xl font-black text-violet-400 uppercase italic mb-8 tracking-tighter">DATA CHALLENGE</h3>
+                            <p className="text-2xl text-white font-medium mb-12 leading-relaxed">"{activeInteraction?.prompt}"</p>
+                            <form onSubmit={handleInteractionSubmit} className="space-y-8">
+                                <input autoFocus value={interactionAnswer} onChange={e => setInteractionAnswer(e.target.value)} placeholder="> Type extraction result..." className="w-full bg-slate-950 border border-white/10 p-8 rounded-3xl text-white font-mono-code focus:border-cyan-500 outline-none shadow-inner text-xl"/>
+                                <Button type="submit" className="w-full h-20 !text-2xl !font-black !bg-white !text-black !rounded-3xl shadow-2xl">VERIFY LOGIC &rarr;</Button>
+                            </form>
+                        </Card>
+                    </motion.div>
+                )}
+
+                {gameState === 'feedback' && (
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[60] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-6">
+                        <Card variant="dark" className={`max-w-md w-full text-center border-4 ${feedback?.correct ? 'border-green-500' : 'border-red-500'} !p-16`}>
+                            <div className={`w-24 h-24 rounded-full mx-auto mb-8 flex items-center justify-center border-2 ${feedback?.correct ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-red-500/20 border-red-500 text-red-400'}`}>
+                                {feedback?.correct ? <CheckCircleIcon className="w-12 h-12" /> : <RocketLaunchIcon className="w-12 h-12 rotate-180" />}
+                            </div>
+                            <h3 className={`text-4xl font-black uppercase italic mb-4 ${feedback?.correct ? 'text-green-500' : 'text-red-500'}`}>{feedback?.correct ? 'SYNC SUCCESS' : 'SYNC ERROR'}</h3>
+                            <p className="text-slate-300 text-xl font-medium mb-12">{feedback?.message}</p>
+                            <Button onClick={() => {
+                                setGameState('playing');
+                                setActiveInteraction(null);
+                                setInteractionAnswer('');
+                                if(completedIds.size >= (gameData?.interactions?.length || 0)) setGameState('completed');
+                            }} className="w-full h-18 !text-xl !font-black !bg-white !text-black">RESUME MISSION</Button>
+                        </Card>
+                    </motion.div>
+                )}
+
+                {gameState === 'completed' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[100] bg-slate-950/95 backdrop-blur-4xl flex items-center justify-center p-6 text-center">
+                        <div className="space-y-12">
+                            <div className="relative inline-block">
+                                <div className="absolute inset-0 bg-cyan-400 blur-[150px] opacity-40 animate-pulse"></div>
+                                <h1 className="text-7xl md:text-9xl font-black text-white italic tracking-tightest uppercase relative z-10 leading-none">CHAPTER<br/>CONQUERED</h1>
+                            </div>
+                            <div className="p-10 bg-white/5 border border-white/10 rounded-[3rem] shadow-2xl">
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mb-4">Neural Mastery Rating</p>
+                                <p className="text-8xl font-black text-cyan-400 italic">{score} / {gameData?.interactions?.length}</p>
+                            </div>
+                            <Button onClick={() => navigate('/app')} size="lg" className="h-24 px-20 !text-3xl !font-black !bg-white !text-black !rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)]">RETURN TO BASE</Button>
                         </div>
-                        <Button onClick={() => navigate('/app')} size="lg" className="w-full">Back to Dashboard</Button>
-                    </Card>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
+    );
+};
+
+const KnowledgeNebula = ({ interactions, completedIds, onOrbClick }: any) => {
+    return (
+        <group>
+            {interactions.map((orb: any, i: number) => {
+                // Scatter orbs in 3D space
+                const x = orb.position?.x ?? (Math.sin(i) * 15);
+                const y = orb.position?.y ?? (Math.cos(i) * 8);
+                const z = orb.position?.z ?? (Math.sin(i * 2) * 5);
+                
+                return (
+                    <KnowledgeOrb 
+                        key={orb.id} 
+                        position={[x, y, z]} 
+                        isCompleted={completedIds.has(orb.id)}
+                        onClick={() => onOrbClick(orb)}
+                    />
+                );
+            })}
+            <CenterLogicCore />
+        </group>
+    );
+};
+
+const KnowledgeOrb = ({ position, isCompleted, onClick }: any) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const [hovered, setHovered] = useState(false);
+    
+    useFrame((state) => {
+        if (!meshRef.current) return;
+        meshRef.current.rotation.y += 0.02;
+        meshRef.current.position.y += Math.sin(state.clock.elapsedTime + position[0]) * 0.005;
+    });
+
+    return (
+        <group position={position} onClick={onClick} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+            <mesh ref={meshRef} castShadow>
+                <icosahedronGeometry args={[0.8, 2]} />
+                <meshStandardMaterial 
+                    color={isCompleted ? "#10b981" : (hovered ? "#22d3ee" : "#8b5cf6")} 
+                    wireframe={!hovered && !isCompleted}
+                    emissive={isCompleted ? "#059669" : (hovered ? "#0891b2" : "#4c1d95")}
+                    emissiveIntensity={hovered ? 2 : 1}
+                />
+            </mesh>
+            <pointLight intensity={hovered ? 1.5 : 0.5} distance={5} color={isCompleted ? "#10b981" : "#8b5cf6"} />
+        </group>
+    );
+};
+
+const CenterLogicCore = () => {
+    const coreRef = useRef<THREE.Mesh>(null);
+    useFrame((state) => {
+        if (coreRef.current) {
+            coreRef.current.rotation.x = state.clock.elapsedTime * 0.2;
+            coreRef.current.rotation.z = state.clock.elapsedTime * 0.3;
+        }
+    });
+    return (
+        <Float speed={2} rotationIntensity={2} floatIntensity={1}>
+            <mesh ref={coreRef}>
+                <torusKnotGeometry args={[3, 0.8, 256, 32]} />
+                <meshStandardMaterial 
+                    color="#ffffff" 
+                    roughness={0} 
+                    metalness={1} 
+                    emissive="#ffffff"
+                    emissiveIntensity={0.1}
+                />
+            </mesh>
+        </Float>
     );
 };
 

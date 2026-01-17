@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { 
     QuizQuestion, Subject, ClassLevel, MathsSolution, 
@@ -5,7 +6,7 @@ import {
     GradedPaper, LabExperiment, LiteraryAnalysis,
     Analogy, RealWorldApplication, LearningPath, GameLevel,
     DebateScorecard, DebateTurn, VisualExplanationScene,
-    CareerRoadmap, MindMapNode
+    CareerRoadmap, MindMapNode, LiveQuizQuestion
 } from "../types";
 import { deductToken, checkTokens, saveActivity } from "./userService";
 
@@ -22,6 +23,41 @@ const getAI = () => {
 const enforceToken = async () => {
     const hasTokens = await checkTokens();
     if (!hasTokens) throw new Error("ASCENSION_REQUIRED: Neural tokens depleted (0/100). Upgrade required for more missions.");
+};
+
+/**
+ * LIVE QUIZ GENERATOR
+ */
+export const generateLiveQuizQuestions = async (topic: string, count: number = 5): Promise<LiveQuizQuestion[]> => {
+    await enforceToken();
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+        model: "gemini-flash-lite-latest",
+        contents: `Generate ${count} multiplayer quiz questions for the topic: "${topic}". 
+        Requirements:
+        - 4 options per question
+        - Exactly one correct answer
+        - High-quality educational explanation for the correct answer
+        - STRICT JSON OUTPUT ONLY.`,
+        config: { 
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        questionText: { type: Type.STRING },
+                        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        correctOptionIndex: { type: Type.NUMBER },
+                        explanation: { type: Type.STRING }
+                    },
+                    required: ["questionText", "options", "correctOptionIndex", "explanation"]
+                }
+            }
+        }
+    });
+    await deductToken();
+    return JSON.parse(response.text || "[]");
 };
 
 /**
