@@ -62,8 +62,8 @@ const toolCategories = [
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
-    const { extractedText, subject, classLevel, searchStatus, searchMessage, hasSessionStarted } = useContent();
-    const { userName, tokens } = useAuth();
+    const { extractedText, subject, classLevel, searchStatus, hasSessionStarted } = useContent();
+    const { userName } = useAuth();
     
     const [activeTool, setActiveTool] = useState<string>('none');
     const [isLoading, setIsLoading] = useState(false);
@@ -128,6 +128,7 @@ const DashboardPage: React.FC = () => {
             switch(tool.id) {
                 case 'summary':
                     const s = await geminiService.generateSmartSummary(subject!, classLevel, extractedText);
+                    if (!s || !s.title) throw new Error("Synthesis node returned empty parameters.");
                     setResultData(s);
                     break;
                 case 'chat':
@@ -136,10 +137,10 @@ const DashboardPage: React.FC = () => {
                     setChatHistory([{ role: 'model', text: "I have read the document. What would you like to discuss?" }]);
                     break;
                 default:
-                    throw new Error("Tool not initialized.");
+                    throw new Error("Target module not initialized.");
             }
         } catch (e: any) {
-            setError(e.message);
+            setError(e.message || "Unknown Logic Failure.");
             setActiveTool('none');
         } finally {
             setIsLoading(false);
@@ -158,11 +159,12 @@ const DashboardPage: React.FC = () => {
                 imagePart = { inlineData: { mimeType: 'image/jpeg', data: mathImage.split(',')[1] } };
             }
             const m = await geminiService.solveMathsBrahmastra(mathProblem, classLevel, imagePart);
+            if (!m || !m.finalAnswer) throw new Error("Brahmastra solver returned invalid logic.");
             setResultData(m);
             const session = geminiService.startMathDoubtChat(m);
             setDoubtChat(session);
         } catch (e: any) {
-            setError(e.message);
+            setError(e.message || "Math Solver Calibration Error.");
             setActiveTool('none');
         } finally {
             setIsLoading(false);
@@ -221,7 +223,6 @@ const DashboardPage: React.FC = () => {
             mediaRecorderRef.current.ondataavailable = (e) => audioChunksRef.current.push(e.data);
             mediaRecorderRef.current.onstop = () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                // Note: Logic for transcription would go here if using audio for math solver
             };
             mediaRecorderRef.current.start();
         } catch (e) { setIsRecording(false); }
@@ -320,6 +321,12 @@ const DashboardPage: React.FC = () => {
                             </div>
                             <Card variant="dark" className="!p-0 border-white/5 bg-slate-950/60 rounded-3xl md:rounded-[4rem] overflow-hidden flex flex-col h-[600px] md:h-[750px] shadow-[0_60px_150px_rgba(0,0,0,0.9)] border-t-4 border-t-amber-500/50">
                                 <div ref={doubtScrollRef} className="flex-grow overflow-y-auto p-6 md:p-12 space-y-8 md:space-y-12 scrollbar-hide">
+                                    {doubtHistory.length === 0 && (
+                                        <div className="h-full flex flex-col items-center justify-center text-center p-10 md:p-20 opacity-30">
+                                            <SparklesIcon className="w-12 h-12 md:w-20 md:h-20 text-slate-700 mb-6 md:mb-8"/>
+                                            <p className="text-slate-500 font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[10px] md:text-sm italic">Initialize query node...</p>
+                                        </div>
+                                    )}
                                     {doubtHistory.map((msg, i) => (
                                         <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[90%] md:max-w-[85%] p-6 md:p-10 rounded-2xl md:rounded-[3rem] relative shadow-2xl ${msg.role === 'user' ? 'bg-amber-500 text-black font-black italic text-lg md:text-2xl shadow-amber-500/20' : 'bg-slate-900/80 text-slate-200 border border-white/10 leading-relaxed shadow-black/80'}`}>
@@ -337,7 +344,7 @@ const DashboardPage: React.FC = () => {
                                 </form>
                             </Card>
                         </div>
-                    </>
+                     </>
                 );
             case 'summary':
                 return resultData && <SmartSummaryComponent summary={resultData} />;
@@ -363,7 +370,7 @@ const DashboardPage: React.FC = () => {
                     </Card>
                 );
             default:
-                return null;
+                return <p className="text-center text-slate-400">Tool result unavailable.</p>;
         }
     };
 
