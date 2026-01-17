@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { initializeFirestore, Firestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD0se3ss2CELT7Li2kP_1-T-bM-ZkF_5Xk",
@@ -25,10 +25,14 @@ if (isBrowser) {
       app = getApp();
     }
     auth = getAuth(app);
-    db = getFirestore(app);
+    
+    // Using initializeFirestore with Long Polling to fix connectivity issues in restricted environments
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}),
+      experimentalForceLongPolling: true
+    });
   } catch (error) {
     console.error("Firebase Service Failure:", error);
-    // Silent fail for non-blocking UI
   }
 }
 

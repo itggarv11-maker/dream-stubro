@@ -62,6 +62,28 @@ export const solveMathsBrahmastra = async (problem: string, level: ClassLevel, i
         config: {
             systemInstruction: "You are StuBro AI Brahmastra. Guaranteed accuracy. No LaTeX ($). Output valid JSON.",
             responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    concept: { type: Type.STRING },
+                    formula: { type: Type.STRING },
+                    steps: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                action: { type: Type.STRING },
+                                result: { type: Type.STRING },
+                                reason: { type: Type.STRING },
+                            },
+                            required: ["action", "result", "reason"],
+                        },
+                    },
+                    finalAnswer: { type: Type.STRING },
+                    recap: { type: Type.STRING },
+                },
+                required: ["concept", "formula", "steps", "finalAnswer", "recap"],
+            }
         }
     });
     
@@ -77,7 +99,38 @@ export const generateSmartSummary = async (subject: Subject, classLevel: ClassLe
         contents: `Subject: ${subject}. Level: ${classLevel}. Context: ${sourceText}`,
         config: { 
             systemInstruction: "Create a precision summary. NO DOLLAR SIGNS ($). Output strict JSON according to SmartSummary interface.",
-            responseMimeType: "application/json"
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING },
+                    coreConcepts: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                term: { type: Type.STRING },
+                                definition: { type: Type.STRING },
+                            },
+                            required: ["term", "definition"],
+                        },
+                    },
+                    visualAnalogy: {
+                        type: Type.OBJECT,
+                        properties: {
+                            analogy: { type: Type.STRING },
+                            explanation: { type: Type.STRING },
+                        },
+                        required: ["analogy"],
+                    },
+                    examSpotlight: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                    },
+                    stuBroTip: { type: Type.STRING },
+                },
+                required: ["title", "coreConcepts", "visualAnalogy", "examSpotlight", "stuBroTip"],
+            }
         }
     });
     await deductToken();
@@ -117,6 +170,14 @@ export const startMathDoubtChat = (solutionContext: MathsSolution): Chat => {
     return ai.chats.create({
         model: 'gemini-flash-lite-latest',
         config: { systemInstruction: `You are the DOUBT SOLVER. Solution Context: ${JSON.stringify(solutionContext)}. Never use $ signs or LaTeX delimiters.` }
+    });
+};
+
+export const createGeneralChat = (context: string): Chat => {
+    const ai = getAI();
+    return ai.chats.create({
+        model: 'gemini-flash-lite-latest',
+        config: { systemInstruction: `You are an expert on the following document. Answer questions based on this context. Never use $ signs or LaTeX. Context: ${context}` }
     });
 };
 
@@ -285,7 +346,44 @@ export const generateCareerDivination = async (formData: any): Promise<CareerRoa
         contents: `Career roadmap for: ${JSON.stringify(formData)}`,
         config: { 
             systemInstruction: "Return a CareerRoadmap JSON. No $ signs.",
-            responseMimeType: "application/json" 
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING },
+                    vision: { type: Type.STRING },
+                    financialMilestones: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    },
+                    classByClassRoadmap: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                grade: { type: Type.STRING },
+                                focus: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                exams: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                coachingRecommendation: { type: Type.STRING }
+                            },
+                            required: ["grade", "focus", "exams", "coachingRecommendation"]
+                        }
+                    },
+                    jobOccupations: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                title: { type: Type.STRING },
+                                scope: { type: Type.STRING },
+                                salaryRange: { type: Type.STRING }
+                            },
+                            required: ["title", "scope", "salaryRange"]
+                        }
+                    }
+                },
+                required: ["title", "vision", "financialMilestones", "classByClassRoadmap", "jobOccupations"]
+            }
         }
     });
     await deductToken();

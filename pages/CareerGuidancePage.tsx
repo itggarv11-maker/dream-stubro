@@ -23,74 +23,93 @@ const CareerGuidancePage: React.FC = () => {
 
     if (isLoading) return <div className="py-60 flex flex-col items-center gap-6"><Spinner className="w-16 h-16" colorClass="bg-violet-500"/><p className="text-xl font-black uppercase tracking-widest text-white">Calculating Your Destiny...</p></div>;
 
-    if (roadmap) return (
-        <div className="max-w-6xl mx-auto px-6 pb-40 space-y-12">
-            <div className="text-center">
-                <h1 className="text-6xl font-black tracking-tighter uppercase mb-4">{roadmap.title || "Your Career Roadmap"}</h1>
-                <p className="text-xl text-slate-400 italic max-w-3xl mx-auto">"{roadmap.vision || "Your potential is limitless."}"</p>
-            </div>
+    if (roadmap) {
+        const isValidRoadmap = roadmap &&
+            roadmap.financialMilestones?.length > 0 &&
+            roadmap.classByClassRoadmap?.length > 0 &&
+            roadmap.jobOccupations?.length > 0;
 
-            <div className="grid lg:grid-cols-12 gap-10">
-                <div className="lg:col-span-4 space-y-6">
-                    <Card variant="dark" className="!p-8 border-slate-800 bg-violet-600/10 border-violet-500/20">
-                        <h3 className="text-xs font-black text-violet-400 uppercase tracking-widest mb-6">Financial Strategy</h3>
-                        <ul className="space-y-4">
-                            {(roadmap.financialMilestones || []).map((m, i) => (
-                                <li key={i} className="flex gap-3 text-sm text-slate-300 font-medium leading-relaxed">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-2 flex-shrink-0"></div>
-                                    {m}
-                                </li>
-                            ))}
-                        </ul>
+        if (!isValidRoadmap) {
+            return (
+                <div className="max-w-6xl mx-auto px-6 pb-40 space-y-12 text-center">
+                    <Card variant="dark" className="!p-12">
+                        <h2 className="text-3xl font-black text-red-500 uppercase tracking-tighter">Generation Incomplete</h2>
+                        <p className="text-slate-400 mt-4 max-w-xl mx-auto">The AI could not generate a complete roadmap based on your input. This can sometimes happen with very niche ambitions. Please try again with more detailed interests.</p>
+                        <Button onClick={() => setRoadmap(null)} size="lg" variant="outline" className="mt-8">Start New Divination</Button>
                     </Card>
-                    <Card variant="dark" className="!p-8 border-slate-800">
-                        <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-6">Future Occupations</h3>
-                        <div className="space-y-6">
-                            {(roadmap.jobOccupations || []).map((job, i) => (
-                                <div key={i} className="border-b border-white/5 pb-4 last:border-0">
-                                    <p className="text-white font-bold">{job.title}</p>
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">{job.salaryRange}</p>
-                                    <p className="text-xs text-slate-400">{job.scope}</p>
-                                </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="max-w-6xl mx-auto px-6 pb-40 space-y-12">
+                <div className="text-center">
+                    <h1 className="text-6xl font-black tracking-tighter uppercase mb-4">{roadmap.title || "Your Career Roadmap"}</h1>
+                    <p className="text-xl text-slate-400 italic max-w-3xl mx-auto">"{roadmap.vision || "Your potential is limitless."}"</p>
+                </div>
+
+                <div className="grid lg:grid-cols-12 gap-10">
+                    <div className="lg:col-span-4 space-y-6">
+                        <Card variant="dark" className="!p-8 border-slate-800 bg-violet-600/10 border-violet-500/20">
+                            <h3 className="text-xs font-black text-violet-400 uppercase tracking-widest mb-6">Financial Strategy</h3>
+                            <ul className="space-y-4">
+                                {(roadmap.financialMilestones || []).map((m, i) => (
+                                    <li key={i} className="flex gap-3 text-sm text-slate-300 font-medium leading-relaxed">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-2 flex-shrink-0"></div>
+                                        {m}
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                        <Card variant="dark" className="!p-8 border-slate-800">
+                            <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-6">Future Occupations</h3>
+                            <div className="space-y-6">
+                                {(roadmap.jobOccupations || []).map((job, i) => (
+                                    <div key={i} className="border-b border-white/5 pb-4 last:border-0">
+                                        <p className="text-white font-bold">{job.title}</p>
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">{job.salaryRange}</p>
+                                        <p className="text-xs text-slate-400">{job.scope}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    </div>
+
+                    <div className="lg:col-span-8">
+                        <div className="space-y-8 relative">
+                            <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-violet-500 via-cyan-500 to-transparent opacity-30"></div>
+                            {(roadmap.classByClassRoadmap || []).map((item, i) => (
+                                <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} className="relative pl-20">
+                                    <div className="absolute left-3 top-0 w-6 h-6 rounded-full bg-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+                                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                                    </div>
+                                    <Card variant="glass" className="!p-8 hover:border-cyan-500/30 transition-all group">
+                                        <h4 className="text-2xl font-black text-white uppercase tracking-widest mb-4 group-hover:text-cyan-400 transition-colors">{item.grade}</h4>
+                                        <div className="grid md:grid-cols-2 gap-8">
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Academic Focus</p>
+                                                <ul className="space-y-2">
+                                                    {(item.focus || []).map((f, j) => <li key={j} className="text-sm text-slate-300 font-medium">&bull; {f}</li>)}
+                                                </ul>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Milestone Exams</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {(item.exams || []).map((e, j) => <span key={j} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase text-cyan-400">{e}</span>)}
+                                                </div>
+                                                <p className="mt-4 text-[10px] text-slate-500 italic">Guru Tip: {item.coachingRecommendation}</p>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                </motion.div>
                             ))}
                         </div>
-                    </Card>
-                </div>
-
-                <div className="lg:col-span-8">
-                    <div className="space-y-8 relative">
-                        <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-violet-500 via-cyan-500 to-transparent opacity-30"></div>
-                        {(roadmap.classByClassRoadmap || []).map((item, i) => (
-                            <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} className="relative pl-20">
-                                <div className="absolute left-3 top-0 w-6 h-6 rounded-full bg-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.5)]">
-                                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
-                                </div>
-                                <Card variant="glass" className="!p-8 hover:border-cyan-500/30 transition-all group">
-                                    <h4 className="text-2xl font-black text-white uppercase tracking-widest mb-4 group-hover:text-cyan-400 transition-colors">{item.grade}</h4>
-                                    <div className="grid md:grid-cols-2 gap-8">
-                                        <div>
-                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Academic Focus</p>
-                                            <ul className="space-y-2">
-                                                {(item.focus || []).map((f, j) => <li key={j} className="text-sm text-slate-300 font-medium">&bull; {f}</li>)}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Milestone Exams</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {(item.exams || []).map((e, j) => <span key={j} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase text-cyan-400">{e}</span>)}
-                                            </div>
-                                            <p className="mt-4 text-[10px] text-slate-500 italic">Guru Tip: {item.coachingRecommendation}</p>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </motion.div>
-                        ))}
                     </div>
                 </div>
+                <div className="text-center"><Button onClick={() => setRoadmap(null)} size="lg" variant="outline">Start New Divination</Button></div>
             </div>
-            <div className="text-center"><Button onClick={() => setRoadmap(null)} size="lg" variant="outline">Start New Divination</Button></div>
-        </div>
-    );
+        );
+    }
 
     return (
         <div className="max-w-3xl mx-auto px-6 py-20">
