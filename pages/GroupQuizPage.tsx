@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,34 +19,34 @@ import { useContent } from '../contexts/ContentContext';
 
 const DEFAULT_QUIZ: LiveQuizQuestion[] = [
   {
-    questionText: "What is the primary function of the CPU?",
-    options: ["Display graphics", "Process data", "Store long-term files", "Input sound"],
-    correctOptionIndex: 1,
-    explanation: "The Central Processing Unit (CPU) is the brain of the computer, responsible for executing instructions and processing data."
-  },
-  {
-    questionText: "Which chemical symbol represents Gold?",
-    options: ["Gd", "Ag", "Au", "Pb"],
+    questionText: "Which fundamental particle carries a negative charge?",
+    options: ["Proton", "Neutron", "Electron", "Photon"],
     correctOptionIndex: 2,
-    explanation: "Au comes from the Latin word 'aurum', meaning gold."
+    explanation: "Electrons are subatomic particles with a negative elementary electric charge."
   },
   {
-    questionText: "In which year did India gain independence?",
-    options: ["1942", "1947", "1950", "1935"],
+    questionText: "What is the result of 15 * 6?",
+    options: ["80", "90", "75", "95"],
     correctOptionIndex: 1,
-    explanation: "India became an independent nation on August 15, 1947."
+    explanation: "15 multiplied by 6 is exactly 90."
   },
   {
-    questionText: "What is the square root of 144?",
-    options: ["10", "14", "12", "16"],
+    questionText: "Which gas is used by plants for photosynthesis?",
+    options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
     correctOptionIndex: 2,
-    explanation: "12 multiplied by 12 equals 144."
+    explanation: "Plants take in carbon dioxide and water to produce glucose and oxygen."
   },
   {
-    questionText: "Which layer of the atmosphere contains the Ozone layer?",
-    options: ["Troposphere", "Stratosphere", "Mesosphere", "Exosphere"],
+    questionText: "Who developed the theory of Relativity?",
+    options: ["Isaac Newton", "Albert Einstein", "Nikola Tesla", "Galileo Galilei"],
     correctOptionIndex: 1,
-    explanation: "The stratosphere contains the ozone layer, which protects Earth from harmful ultraviolet radiation."
+    explanation: "Albert Einstein published the special and general theories of relativity."
+  },
+  {
+    questionText: "What is the capital city of France?",
+    options: ["Berlin", "London", "Madrid", "Paris"],
+    correctOptionIndex: 3,
+    explanation: "Paris is the capital and most populous city of France."
   }
 ];
 
@@ -73,21 +74,14 @@ const GroupQuizPage: React.FC = () => {
 
   const timerRef = useRef<number | null>(null);
 
-  // Auto-Auth for direct URL access
+  // Participant Safety: Ensure anonymous auth is active for guest URL access
   useEffect(() => {
     if (!currentUser) {
-      signInAnonymously(auth).catch(console.error);
+      signInAnonymously(auth).catch(err => console.error("Identity Engine Failure:", err));
     }
   }, [currentUser]);
 
-  // Handle automatic entry if URL has code
-  useEffect(() => {
-    if (urlRoomCode && uiState === 'entry') {
-      setRoomCodeInput(urlRoomCode);
-    }
-  }, [urlRoomCode]);
-
-  // Real-time Sync Logic
+  // Real-time Data Bridge
   useEffect(() => {
     if (!roomId) return;
 
@@ -108,7 +102,7 @@ const GroupQuizPage: React.FC = () => {
     };
   }, [roomId, currentUser]);
 
-  // Game Progress Monitor
+  // Game Logic Monitor
   useEffect(() => {
     if (uiState === 'live' && room) {
       const loadQ = async () => {
@@ -137,7 +131,7 @@ const GroupQuizPage: React.FC = () => {
   };
 
   const handleCreateRoom = async () => {
-    if (!playerName.trim()) return setError("Identify yourself first.");
+    if (!playerName.trim()) return setError("Mission requires a Callsign.");
     setIsLoading(true);
     setError(null);
     try {
@@ -145,12 +139,12 @@ const GroupQuizPage: React.FC = () => {
       if (extractedText && extractedText.length > 200) {
         try {
           qs = await geminiService.generateLiveQuizQuestions(extractedText.substring(0, 4000));
-        } catch (e) { console.warn("AI Generation failed, using system defaults."); }
+        } catch (e) { console.warn("AI Synthesis throttled, fallback to Standard Logic."); }
       }
       
       const rid = await liveQuizService.createLiveQuizRoom(
         playerName, 
-        subject || "Mixed Logic Battle", 
+        subject || "Strategic Combat", 
         subject || "General", 
         qs
       );
@@ -163,13 +157,13 @@ const GroupQuizPage: React.FC = () => {
   };
 
   const handleJoinRoom = async () => {
-    if (!playerName.trim()) return setError("Identify yourself first.");
-    if (roomCodeInput.length < 5) return setError("Room code invalid.");
+    if (!playerName.trim()) return setError("Mission requires a Callsign.");
+    if (roomCodeInput.length < 5) return setError("Invalid Link Parameters.");
     setIsLoading(true);
     setError(null);
     try {
       const rid = await liveQuizService.findRoomByCode(roomCodeInput);
-      if (!rid) throw new Error("Arena not found or combat closed.");
+      if (!rid) throw new Error("Arena not found or mission already ended.");
       await liveQuizService.joinLiveQuizRoom(rid, playerName);
       setRoomId(rid);
     } catch (e: any) {
@@ -206,35 +200,38 @@ const GroupQuizPage: React.FC = () => {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  // UI VIEWS
+  // VIEWS
 
   const renderEntry = () => (
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-2xl mx-auto space-y-12">
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto space-y-12">
       <div className="text-center">
-        <div className="inline-block p-6 rounded-full bg-violet-600/10 border border-violet-500/20 mb-8 shadow-2xl">
-          <RocketLaunchIcon className="w-16 h-16 text-violet-500" />
+        <div className="inline-block p-6 rounded-[2.5rem] bg-violet-600/10 border border-violet-500/20 mb-8 shadow-2xl">
+          <RocketLaunchIcon className="w-16 h-16 text-violet-500 animate-pulse" />
         </div>
         <h1 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none">ASTRAL ARENA</h1>
-        <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4">Real-time Competitive Learning</p>
+        <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-4">Real-time Neural Combat System</p>
       </div>
 
       <Card variant="dark" className="!p-12 border-slate-800 space-y-10 shadow-[0_50px_150px_rgba(0,0,0,0.8)] relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-violet-600"></div>
         
         <div className="space-y-6">
-          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Callsign (Display Name)</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center block">Identify Your Node (Callsign)</label>
           <input 
             value={playerName} 
-            onChange={e => setPlayerName(e.target.value)} 
+            onChange={e => setPlayerName(e.target.value.toUpperCase())} 
             placeholder="ENTER CALLSIGN..." 
-            className="w-full bg-slate-950 border border-white/5 p-6 rounded-3xl text-2xl font-black text-center text-white placeholder-slate-900 focus:border-violet-500 outline-none transition-all"
+            className="w-full bg-slate-950 border border-white/5 p-6 rounded-3xl text-3xl font-black text-center text-white placeholder-slate-900 focus:border-violet-500 outline-none transition-all tracking-widest"
+            maxLength={12}
           />
         </div>
 
         {urlRoomCode ? (
            <div className="space-y-6">
-              <p className="text-center text-slate-400 text-sm font-medium">Entering Combat Room: <span className="text-cyan-400 font-black italic">{urlRoomCode}</span></p>
-              <Button onClick={handleJoinRoom} disabled={isLoading || !playerName.trim()} className="w-full h-24 !text-2xl !font-black !bg-white !text-black !rounded-[2.5rem] shadow-2xl">JOIN ARENA →</Button>
+              <div className="p-6 bg-violet-500/5 rounded-2xl border border-violet-500/20 text-center">
+                <p className="text-slate-400 text-sm font-medium">Entering Room: <span className="text-cyan-400 font-black italic">{urlRoomCode}</span></p>
+              </div>
+              <Button onClick={handleJoinRoom} disabled={isLoading || !playerName.trim()} className="w-full h-24 !text-2xl !font-black !bg-white !text-black !rounded-[2.5rem] shadow-2xl">ENGAGE ARENA →</Button>
            </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -248,6 +245,7 @@ const GroupQuizPage: React.FC = () => {
                 onChange={e => setRoomCodeInput(e.target.value.toUpperCase())} 
                 placeholder="CODE" 
                 className="w-full bg-slate-950 border border-white/5 p-4 rounded-2xl text-xl font-black text-center text-white placeholder-slate-900 focus:border-cyan-500 outline-none"
+                maxLength={6}
               />
               <Button onClick={handleJoinRoom} variant="outline" disabled={isLoading} className="w-full h-12 !text-[9px] !font-black uppercase tracking-widest hover:!bg-cyan-600 !rounded-2xl">JOIN ROOM</Button>
             </div>
@@ -268,7 +266,7 @@ const GroupQuizPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
             <div className="text-right">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Invite Code</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Astra Sync Code</p>
                 <p className="text-4xl font-black text-cyan-400 italic tracking-widest">{room?.roomCode}</p>
             </div>
             <button onClick={copyInviteLink} className={`p-4 rounded-2xl border transition-all ${copySuccess ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-white/10 text-slate-400 hover:text-white'}`}>
@@ -280,12 +278,12 @@ const GroupQuizPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-6">
           <div className="flex items-center gap-4 text-white/40 uppercase font-black text-[10px] tracking-widest">
-            <UsersIcon className="w-4 h-4"/> Combatants Syncing ({players.length})
+            <UsersIcon className="w-4 h-4"/> Nodes in Sync ({players.length})
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {players.map((p) => (
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={p.uid} className="p-8 bg-slate-900/60 border border-white/5 rounded-[2.5rem] text-center relative group">
-                {p.uid === room?.hostUid && <div className="absolute top-3 right-5 text-[7px] font-black text-amber-500 uppercase tracking-widest">HOST</div>}
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={p.uid} className="p-8 bg-slate-900/60 border border-white/5 rounded-[2.5rem] text-center relative group overflow-hidden">
+                {p.uid === room?.hostUid && <div className="absolute top-3 right-5 text-[8px] font-black text-amber-500 uppercase tracking-widest">COMMANDER</div>}
                 <div className="w-16 h-16 rounded-3xl bg-violet-600/10 mx-auto mb-4 flex items-center justify-center text-2xl font-black text-white group-hover:bg-violet-600 transition-all shadow-2xl">{p.name[0].toUpperCase()}</div>
                 <p className="font-black text-white text-sm uppercase tracking-widest truncate">{p.name}</p>
               </motion.div>
@@ -297,11 +295,11 @@ const GroupQuizPage: React.FC = () => {
             <div className="w-20 h-20 bg-violet-600/10 rounded-full mx-auto flex items-center justify-center animate-pulse border border-violet-500/20">
                <UsersIcon className="w-10 h-10 text-violet-500"/>
             </div>
-            <p className="text-slate-400 text-xs italic font-medium leading-relaxed">Share the room code or invite link to bring more participants into the arena.</p>
+            <p className="text-slate-400 text-xs italic font-medium leading-relaxed">Wait for all participants to sync their neural links before engaging the engine.</p>
             {room?.hostUid === currentUser?.uid ? (
-              <Button onClick={handleStartGame} size="lg" className="w-full h-20 !text-xl !font-black !bg-white !text-black !rounded-3xl shadow-[0_20px_50px_rgba(255,255,255,0.1)] hover:scale-105 transition-all">ENGAGE ENGINE →</Button>
+              <Button onClick={handleStartGame} size="lg" className="w-full h-20 !text-xl !font-black !bg-white !text-black !rounded-3xl shadow-[0_20px_50px_rgba(255,255,255,0.1)] hover:scale-105 transition-all">ENGAGE MISSION →</Button>
             ) : (
-              <div className="py-6 px-6 bg-slate-950 rounded-3xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500">Awaiting Neural Link Authorization...</div>
+              <div className="py-6 px-6 bg-slate-950 rounded-3xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500">Awaiting Commander Authorization...</div>
             )}
           </Card>
         </div>
@@ -347,7 +345,7 @@ const GroupQuizPage: React.FC = () => {
                 className={`p-10 rounded-[3rem] border-2 text-left transition-all relative overflow-hidden group ${
                   selectedOption === i 
                     ? (feedback === 'correct' ? 'bg-emerald-600/20 border-emerald-500' : 'bg-red-600/20 border-red-500')
-                    : (hasAnswered ? 'opacity-40 grayscale pointer-events-none' : 'bg-slate-900 border-white/5 hover:border-violet-500/50 hover:bg-slate-800')
+                    : (hasAnswered ? 'opacity-40 grayscale pointer-events-none' : 'bg-slate-900 border-white/5 hover:border-pink-500/50 hover:bg-slate-800')
                 }`}
               >
                  <div className="flex items-center gap-8">
@@ -427,7 +425,7 @@ const GroupQuizPage: React.FC = () => {
         <div className="space-y-6">
            <div className="flex items-center gap-6 justify-center opacity-30 mb-10">
               <div className="h-px w-20 bg-white"></div>
-              <h4 className="text-[10px] font-black text-white uppercase tracking-[1.5em] italic">Full Dossier</h4>
+              <h4 className="text-[10px] font-black text-white uppercase tracking-[1.5em] italic">Full Battle Log</h4>
               <div className="h-px w-20 bg-white"></div>
            </div>
            <div className="space-y-4 px-4">
@@ -445,10 +443,10 @@ const GroupQuizPage: React.FC = () => {
 
         <div className="flex flex-col md:flex-row gap-6 justify-center items-center pt-20">
            <Button onClick={() => window.location.reload()} size="lg" className="h-24 px-20 !text-2xl !font-black !rounded-full !bg-white !text-black shadow-2xl italic group">
-              RE-ENTER ARENA
+              RE-ENGAGE SYSTEM
               <RocketLaunchIcon className="w-6 h-6 group-hover:translate-x-2 transition-transform"/>
            </Button>
-           <Button onClick={() => navigate('/app')} variant="outline" className="h-24 px-12 !text-xl !font-black !rounded-full border-white/10 hover:border-white/20 italic">RETURN TO HQ</Button>
+           <Button onClick={() => navigate('/app')} variant="outline" className="h-24 px-12 !text-xl !font-black !rounded-full border-white/10 hover:border-white/20 italic">ABORT TO HQ</Button>
         </div>
       </div>
     );

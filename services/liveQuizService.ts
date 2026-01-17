@@ -1,3 +1,4 @@
+
 import { 
   collection, 
   doc, 
@@ -102,15 +103,14 @@ export const submitLiveAnswer = async (roomId: string, questionIndex: number, is
 
   const answerTimeMs = Date.now() - startTime;
   const basePoints = 1000;
-  // Bonus: up to 1000 points based on speed (15s window)
+  // Speed Bonus Logic: Linear decay over 15s
   const speedBonus = Math.max(0, Math.floor(1000 * (1 - (answerTimeMs / 15000))));
   const totalPoints = isCorrect ? (basePoints + speedBonus) : 0;
 
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', user.uid);
-  
-  // Deterministic update using Firestore to prevent race conditions
   const playerSnap = await getDoc(playerRef);
   if (!playerSnap.exists()) return;
+
   const currentScore = playerSnap.data().score || 0;
 
   await updateDoc(playerRef, {
@@ -128,7 +128,7 @@ export const nextLiveQuestion = async (roomId: string, nextIndex: number, totalQ
     return;
   }
 
-  // Reset player flags for the next round
+  // Reset participant state for next round
   const playersSnap = await getDocs(collection(db, 'liveQuizRooms', roomId, 'players'));
   for (const p of playersSnap.docs) {
     await updateDoc(doc(db, 'liveQuizRooms', roomId, 'players', p.id), {
