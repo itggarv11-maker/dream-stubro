@@ -1,173 +1,182 @@
-import React, { useState, useEffect, Suspense, useRef, useMemo } from 'react';
+
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { 
-    OrbitControls, Stars, Float, 
-    Environment, Text, ContactShadows, PresentationControls, 
-    MeshDistortMaterial, PerspectiveCamera, Sparkles, PointLightHelper
+    Stars, Float, Environment, Text, Sparkles, 
+    OrbitControls, PerspectiveCamera, MeshTransmissionMaterial,
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useContent } from '../contexts/ContentContext';
+import { useAuth } from '../contexts/AuthContext';
 import * as geminiService from '../services/geminiService';
+import { db } from '../services/firebase';
+import { doc, setDoc, onSnapshot, collection, query, serverTimestamp } from 'firebase/firestore';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Spinner from '../components/common/Spinner';
-import { SparklesIcon, RocketLaunchIcon, CheckCircleIcon } from '../components/icons';
-
-type GameState = 'generating' | 'playing' | 'interaction' | 'feedback' | 'completed' | 'error';
+import { SparklesIcon, UsersIcon, CheckCircleIcon, StarIcon } from '../components/icons';
+import MathRenderer from '../components/common/MathRenderer';
+import { GameverseWorld, GameMission } from '../types';
 
 const ChapterConquestPage: React.FC = () => {
     const { extractedText } = useContent();
+    const { currentUser, userName } = useAuth();
     const navigate = useNavigate();
 
-    const [gameState, setGameState] = useState<GameState>('generating');
-    const [gameData, setGameData] = useState<any>(null);
-    const [score, setScore] = useState(0);
-    const [activeInteraction, setActiveInteraction] = useState<any>(null);
-    const [interactionAnswer, setInteractionAnswer] = useState('');
-    const [feedback, setFeedback] = useState<{ correct: boolean; message: string } | null>(null);
-    const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
-    const [error, setError] = useState<string | null>(null);
+    const [gameState, setGameState] = useState<'loading' | 'playing' | 'mission' | 'finished' | 'error'>('loading');
+    const [worldData, setWorldData] = useState<GameverseWorld | null>(null);
+    const [activeMission, setActiveMission] = useState<GameMission | null>(null);
+    const [missionStatus, setMissionStatus] = useState<'idle' | 'success' | 'fail'>('idle');
+    const [userInput, setUserInput] = useState('');
+    const [otherPlayers, setOtherPlayers] = useState<any[]>([]);
+    const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
+    const [loadingStep, setLoadingStep] = useState("Initializing Cores...");
+
+    const worldId = useRef(`world_${Date.now()}`);
+
+    useEffect(() => {
+        if (!currentUser) return;
+        const playerRef = doc(db, 'gameverse', worldId.current, 'players', currentUser.uid);
+        setDoc(playerRef, {
+            uid: currentUser.uid,
+            name: userName,
+            pos: [0, 0, 0],
+            lastActive: serverTimestamp(),
+            progress: completedMissions.size
+        }, { merge: true });
+
+        const q = query(collection(db, 'gameverse', worldId.current, 'players'));
+        const unsub = onSnapshot(q, (snap) => {
+            setOtherPlayers(snap.docs.map(d => d.data()).filter(p => p.uid !== currentUser.uid));
+        });
+        return () => unsub();
+    }, [currentUser, completedMissions.size]);
 
     useEffect(() => {
         if (!extractedText) {
-            setError("Knowledge Node missing. Start a new session first.");
             setGameState('error');
             return;
         }
 
-        const initGame = async () => {
+        const buildWorld = async () => {
+            setLoadingStep("Parsing Chapter Logic...");
             try {
-                const data = await geminiService.generateGameLevel(extractedText);
-                setGameData(data);
+                const data = await geminiService.generateGameverseWorld(extractedText);
+                setLoadingStep("Synthesizing 3D Assets...");
+                setWorldData(data);
                 setGameState('playing');
             } catch (err) {
-                setError("Neural build failure.");
                 setGameState('error');
             }
         };
-        initGame();
+        buildWorld();
     }, [extractedText]);
 
-    const handleOrbCapture = (orb: any) => {
-        if (completedIds.has(orb.id)) return;
-        setActiveInteraction(orb);
-        setGameState('interaction');
+    const handleMissionClick = (mission: GameMission) => {
+        if (completedMissions.has(mission.id)) return;
+        setActiveMission(mission);
+        setGameState('mission');
+        setMissionStatus('idle');
+        setUserInput('');
     };
 
-    const handleInteractionSubmit = (e: React.FormEvent) => {
+    const verifyLogic = (e: React.FormEvent) => {
         e.preventDefault();
-        const isCorrect = interactionAnswer.trim().toLowerCase() === activeInteraction.correct_answer.toLowerCase();
+        if (!activeMission) return;
+        
+        const isCorrect = userInput.trim().toLowerCase() === activeMission.challenge.correctAnswer.toLowerCase();
         if (isCorrect) {
-            setScore(s => s + 1);
-            setCompletedIds(prev => new Set(prev).add(activeInteraction.id));
-            setFeedback({ correct: true, message: activeInteraction.success_message });
+            setMissionStatus('success');
+            setCompletedMissions(prev => new Set(prev).add(activeMission.id));
+            setTimeout(() => {
+                setGameState('playing');
+                setActiveMission(null);
+                if (completedMissions.size + 1 >= (worldData?.missions.length || 0)) setGameState('finished');
+            }, 2500);
         } else {
-            setFeedback({ correct: false, message: activeInteraction.failure_message });
+            setMissionStatus('fail');
         }
-        setGameState('feedback');
     };
 
-    if (gameState === 'generating') return (
-        <div className="flex flex-col items-center justify-center py-40 gap-10">
+    if (gameState === 'loading') return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-16 px-10 text-center">
             <div className="relative">
-                <div className="absolute inset-0 bg-violet-600 blur-[150px] opacity-30 animate-pulse"></div>
-                <Spinner className="w-24 h-24 relative z-10" colorClass="bg-violet-500" />
+                <div className="absolute inset-0 bg-violet-600 blur-[150px] opacity-20 animate-pulse"></div>
+                <Spinner className="w-32 h-32 relative z-10" colorClass="bg-violet-500" />
             </div>
-            <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter animate-pulse">Designing Reality...</h2>
+            <div className="space-y-4">
+                <h1 className="text-5xl font-black text-white italic tracking-tightest uppercase animate-pulse">Neural World Construction</h1>
+                <p className="text-cyan-400 font-mono text-sm tracking-[0.6em] uppercase">{loadingStep}</p>
+            </div>
+            <div className="max-w-md w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 5, ease: 'linear' }} className="h-full bg-cyan-400" />
+            </div>
         </div>
     );
 
     return (
-        <div className="w-full h-screen fixed inset-0 bg-[#010208] z-[50]">
-            {/* 3D Game World */}
-            <div className="absolute inset-0 z-0">
-                <Canvas shadows>
-                    <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-                    <Sparkles count={200} scale={20} size={2} speed={0.4} color="#8b5cf6" />
-                    <ambientLight intensity={0.2} />
-                    <pointLight position={[10, 10, 10]} intensity={1.5} color="#8b5cf6" castShadow />
-                    <Suspense fallback={null}>
-                        <Environment preset="night" />
-                        <KnowledgeNebula 
-                            interactions={gameData?.interactions || []} 
-                            completedIds={completedIds}
-                            onOrbClick={handleOrbCapture}
-                        />
-                    </Suspense>
-                    <OrbitControls 
-                        enablePan={false} 
-                        enableZoom={true} 
-                        minDistance={5} 
-                        maxDistance={30}
-                        autoRotate 
-                        autoRotateSpeed={0.5} 
-                    />
-                </Canvas>
-            </div>
+        <div className="fixed inset-0 bg-[#010208] z-[60]">
+            <Canvas shadows className="absolute inset-0 z-0">
+                <PerspectiveCamera makeDefault position={[0, 10, 25]} fov={40} />
+                <Stars radius={100} depth={50} count={5000} factor={4} />
+                <Sparkles count={300} scale={25} size={2} speed={0.4} color="#8b5cf6" />
+                <ambientLight intensity={0.3} />
+                <spotLight position={[20, 20, 10]} intensity={2.5} color="#8b5cf6" castShadow />
+                
+                <Suspense fallback={null}>
+                    <Environment preset="night" />
+                    <KnowledgeCore title={worldData?.title || "CONQUEST"} />
+                    {worldData?.missions.map((m, i) => (
+                        <MissionNode key={m.id} mission={m} index={i} isCompleted={completedMissions.has(m.id)} onClick={() => handleMissionClick(m)} />
+                    ))}
+                    {otherPlayers.map(p => (
+                        <PeerAvatar key={p.uid} name={p.name} />
+                    ))}
+                    <OrbitControls enablePan={false} enableZoom={true} minDistance={10} maxDistance={40} autoRotate={gameState === 'playing'} autoRotateSpeed={0.3} />
+                </Suspense>
+            </Canvas>
 
             {/* HUD */}
-            <div className="absolute top-10 left-10 right-10 flex justify-between items-start pointer-events-none z-10">
-                <div className="glass-card !rounded-2xl p-6 border-white/10 pointer-events-auto">
-                    <h1 className="text-2xl font-black text-white uppercase italic tracking-widest">{gameData?.title || "CONQUEST"}</h1>
-                    <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-[0.4em] mt-1">{gameData?.goal}</p>
-                </div>
-                <div className="text-right space-y-4">
-                    <div className="glass-card !rounded-2xl p-6 border-white/10 text-center pointer-events-auto">
-                        <p className="text-5xl font-black text-violet-500 italic leading-none">{score}</p>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">KNOWLEDGE SYNCS</p>
+            <div className="absolute top-10 left-10 pointer-events-none z-10">
+                <div className="p-8 bg-black/60 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] shadow-2xl pointer-events-auto">
+                    <p className="text-violet-400 font-black text-[9px] uppercase tracking-[0.6em] mb-2 italic">Astra Gameverse Hub</p>
+                    <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{worldData?.title}</h2>
+                    <div className="flex items-center gap-4 mt-6">
+                        <span className="text-[10px] font-black text-slate-500 tracking-widest">{completedMissions.size}/{worldData?.missions.length} NODES CAPTURED</span>
                     </div>
-                    <Button variant="outline" onClick={() => setGameState('completed')} className="pointer-events-auto h-12 !text-[9px] uppercase tracking-[0.3em]">EXIT REALITY</Button>
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* MISSION INTERFACE */}
             <AnimatePresence>
-                {gameState === 'interaction' && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-black/80 backdrop-blur-3xl flex items-center justify-center p-6">
-                        <Card variant="dark" className="max-w-2xl w-full !p-12 border-violet-500/30 relative">
-                            <h3 className="text-4xl font-black text-violet-400 uppercase italic mb-8 tracking-tighter">DATA CHALLENGE</h3>
-                            <p className="text-2xl text-white font-medium mb-12 leading-relaxed">"{activeInteraction?.prompt}"</p>
-                            <form onSubmit={handleInteractionSubmit} className="space-y-8">
-                                <input autoFocus value={interactionAnswer} onChange={e => setInteractionAnswer(e.target.value)} placeholder="> Type extraction result..." className="w-full bg-slate-950 border border-white/10 p-8 rounded-3xl text-white font-mono-code focus:border-cyan-500 outline-none shadow-inner text-xl"/>
-                                <Button type="submit" className="w-full h-20 !text-2xl !font-black !bg-white !text-black !rounded-3xl shadow-2xl">VERIFY LOGIC &rarr;</Button>
-                            </form>
-                        </Card>
-                    </motion.div>
-                )}
+                {gameState === 'mission' && activeMission && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-black/90 backdrop-blur-3xl flex items-center justify-center p-6">
+                        <Card variant="dark" className="max-w-3xl w-full !p-20 border-white/5 relative overflow-hidden !rounded-[4rem] shadow-2xl">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-violet-600"></div>
+                            <div className="mb-10">
+                                <span className="px-4 py-1 bg-violet-600/10 border border-violet-500/20 rounded-full text-violet-400 font-black text-[9px] uppercase tracking-widest">PHASE {activeMission.type}</span>
+                                <h3 className="text-5xl font-black text-white uppercase italic tracking-tighter mt-4 leading-none">{activeMission.title}</h3>
+                            </div>
+                            <div className="mb-12">
+                                <p className="text-3xl font-bold text-white italic tracking-tight leading-relaxed">"{activeMission.challenge.prompt}"</p>
+                            </div>
 
-                {gameState === 'feedback' && (
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[60] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-6">
-                        <Card variant="dark" className={`max-w-md w-full text-center border-4 ${feedback?.correct ? 'border-green-500' : 'border-red-500'} !p-16`}>
-                            <div className={`w-24 h-24 rounded-full mx-auto mb-8 flex items-center justify-center border-2 ${feedback?.correct ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-red-500/20 border-red-500 text-red-400'}`}>
-                                {feedback?.correct ? <CheckCircleIcon className="w-12 h-12" /> : <RocketLaunchIcon className="w-12 h-12 rotate-180" />}
-                            </div>
-                            <h3 className={`text-4xl font-black uppercase italic mb-4 ${feedback?.correct ? 'text-green-500' : 'text-red-500'}`}>{feedback?.correct ? 'SYNC SUCCESS' : 'SYNC ERROR'}</h3>
-                            <p className="text-slate-300 text-xl font-medium mb-12">{feedback?.message}</p>
-                            <Button onClick={() => {
-                                setGameState('playing');
-                                setActiveInteraction(null);
-                                setInteractionAnswer('');
-                                if(completedIds.size >= (gameData?.interactions?.length || 0)) setGameState('completed');
-                            }} className="w-full h-18 !text-xl !font-black !bg-white !text-black">RESUME MISSION</Button>
+                            {missionStatus === 'idle' ? (
+                                <form onSubmit={verifyLogic} className="space-y-6">
+                                    <input autoFocus value={userInput} onChange={e => setUserInput(e.target.value)} placeholder="Type logic response..." className="w-full bg-black/60 border border-white/10 p-8 rounded-[2.5rem] text-2xl text-white outline-none focus:border-cyan-500 transition-all font-mono" />
+                                    <Button type="submit" className="w-full h-24 !text-2xl !font-black !bg-white !text-black !rounded-full shadow-2xl">VERIFY NODE &rarr;</Button>
+                                    <p className="text-center text-slate-600 text-[9px] font-black uppercase tracking-widest cursor-help hover:text-cyan-400" title={activeMission.challenge.logicHint}>Access Neural Hint</p>
+                                </form>
+                            ) : (
+                                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`p-16 rounded-[4rem] text-center border-2 ${missionStatus === 'success' ? 'border-emerald-500 bg-emerald-500/5' : 'border-red-500 bg-red-500/5'}`}>
+                                    <h4 className={`text-4xl font-black uppercase italic mb-4 ${missionStatus === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{missionStatus === 'success' ? 'SYNC SUCCESS' : 'SYNC FAILED'}</h4>
+                                    <p className="text-slate-300 text-xl">{missionStatus === 'success' ? 'Concept archived to neural core.' : 'Logic mismatch. Re-try decryption.'}</p>
+                                    {missionStatus === 'fail' && <Button onClick={() => setMissionStatus('idle')} className="mt-8 !px-12 mx-auto">RE-TRY</Button>}
+                                </motion.div>
+                            )}
                         </Card>
-                    </motion.div>
-                )}
-
-                {gameState === 'completed' && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[100] bg-slate-950/95 backdrop-blur-4xl flex items-center justify-center p-6 text-center">
-                        <div className="space-y-12">
-                            <div className="relative inline-block">
-                                <div className="absolute inset-0 bg-cyan-400 blur-[150px] opacity-40 animate-pulse"></div>
-                                <h1 className="text-7xl md:text-9xl font-black text-white italic tracking-tightest uppercase relative z-10 leading-none">CHAPTER<br/>CONQUERED</h1>
-                            </div>
-                            <div className="p-10 bg-white/5 border border-white/10 rounded-[3rem] shadow-2xl">
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mb-4">Neural Mastery Rating</p>
-                                <p className="text-8xl font-black text-cyan-400 italic">{score} / {gameData?.interactions?.length}</p>
-                            </div>
-                            <Button onClick={() => navigate('/app')} size="lg" className="h-24 px-20 !text-3xl !font-black !bg-white !text-black !rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)]">RETURN TO BASE</Button>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -175,77 +184,49 @@ const ChapterConquestPage: React.FC = () => {
     );
 };
 
-const KnowledgeNebula = ({ interactions, completedIds, onOrbClick }: any) => {
+const KnowledgeCore = ({ title }: { title: string }) => {
+    const coreRef = useRef<THREE.Group>(null);
+    useFrame((state) => {
+        if (coreRef.current) coreRef.current.rotation.y = state.clock.elapsedTime * 0.15;
+    });
     return (
-        <group>
-            {interactions.map((orb: any, i: number) => {
-                // Scatter orbs in 3D space
-                const x = orb.position?.x ?? (Math.sin(i) * 15);
-                const y = orb.position?.y ?? (Math.cos(i) * 8);
-                const z = orb.position?.z ?? (Math.sin(i * 2) * 5);
-                
-                return (
-                    <KnowledgeOrb 
-                        key={orb.id} 
-                        position={[x, y, z]} 
-                        isCompleted={completedIds.has(orb.id)}
-                        onClick={() => onOrbClick(orb)}
-                    />
-                );
-            })}
-            <CenterLogicCore />
+        <group ref={coreRef}>
+            <Float speed={2} floatIntensity={1}>
+                <mesh castShadow>
+                    <torusKnotGeometry args={[4.5, 0.6, 200, 32]} />
+                    <MeshTransmissionMaterial thickness={1} roughness={0} transmission={1} color="#ffffff" />
+                </mesh>
+            </Float>
+            <Text position={[0, 0, 0]} fontSize={1.4} font="/fonts/Outfit-Black.ttf" color="white" anchorX="center" anchorY="middle" maxWidth={6}>{title.toUpperCase()}</Text>
         </group>
     );
 };
 
-const KnowledgeOrb = ({ position, isCompleted, onClick }: any) => {
-    const meshRef = useRef<THREE.Mesh>(null);
+const MissionNode = ({ mission, index, isCompleted, onClick }: any) => {
     const [hovered, setHovered] = useState(false);
-    
-    useFrame((state) => {
-        if (!meshRef.current) return;
-        meshRef.current.rotation.y += 0.02;
-        meshRef.current.position.y += Math.sin(state.clock.elapsedTime + position[0]) * 0.005;
-    });
-
+    const pos: [number, number, number] = [Math.sin(index * 1.5) * 16, Math.cos(index * 2) * 6, Math.sin(index * 3) * 12];
     return (
-        <group position={position} onClick={onClick} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-            <mesh ref={meshRef} castShadow>
-                <icosahedronGeometry args={[0.8, 2]} />
-                <meshStandardMaterial 
-                    color={isCompleted ? "#10b981" : (hovered ? "#22d3ee" : "#8b5cf6")} 
-                    wireframe={!hovered && !isCompleted}
-                    emissive={isCompleted ? "#059669" : (hovered ? "#0891b2" : "#4c1d95")}
-                    emissiveIntensity={hovered ? 2 : 1}
-                />
-            </mesh>
-            <pointLight intensity={hovered ? 1.5 : 0.5} distance={5} color={isCompleted ? "#10b981" : "#8b5cf6"} />
+        <group position={pos} onClick={onClick} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+            <Float speed={5} rotationIntensity={1} floatIntensity={2}>
+                <mesh castShadow>
+                    <icosahedronGeometry args={[1.8, 1]} />
+                    <meshStandardMaterial color={isCompleted ? "#10b981" : (hovered ? "#22d3ee" : "#8b5cf6")} wireframe emissive={isCompleted ? "#10b981" : (hovered ? "#22d3ee" : "#8b5cf6")} emissiveIntensity={hovered ? 8 : 1} />
+                </mesh>
+                <Text position={[0, -2.8, 0]} fontSize={0.7} color="white" font="/fonts/Outfit-Bold.ttf">{mission.title.toUpperCase()}</Text>
+            </Float>
+            <pointLight intensity={hovered ? 6 : 1} distance={10} color={isCompleted ? "#10b981" : "#8b5cf6"} />
         </group>
     );
 };
 
-const CenterLogicCore = () => {
-    const coreRef = useRef<THREE.Mesh>(null);
-    useFrame((state) => {
-        if (coreRef.current) {
-            coreRef.current.rotation.x = state.clock.elapsedTime * 0.2;
-            coreRef.current.rotation.z = state.clock.elapsedTime * 0.3;
-        }
-    });
-    return (
-        <Float speed={2} rotationIntensity={2} floatIntensity={1}>
-            <mesh ref={coreRef}>
-                <torusKnotGeometry args={[3, 0.8, 256, 32]} />
-                <meshStandardMaterial 
-                    color="#ffffff" 
-                    roughness={0} 
-                    metalness={1} 
-                    emissive="#ffffff"
-                    emissiveIntensity={0.1}
-                />
-            </mesh>
-        </Float>
-    );
-};
+const PeerAvatar: React.FC<{ name: string }> = ({ name }) => (
+    <group position={[Math.random() * 20 - 10, 0, Math.random() * 20 - 10]}>
+        <mesh>
+            <boxGeometry args={[0.8, 1.8, 0.8]} />
+            <meshStandardMaterial color="cyan" emissive="cyan" emissiveIntensity={2} wireframe />
+        </mesh>
+        <Text position={[0, 2.2, 0]} fontSize={0.5} color="cyan">{name}</Text>
+    </group>
+);
 
 export default ChapterConquestPage;

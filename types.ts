@@ -20,7 +20,47 @@ export type ClassLevel =
   | "Class 6" | "Class 7" | "Class 8" | "Class 9" | "Class 10" 
   | "Class 11" | "Class 12" | "Any";
 
-export type AssessmentMode = 'speak' | 'type' | 'upload';
+/**
+ * Fixed: Added missing QuizDifficulty to resolve import error in AppPage.tsx
+ */
+export type QuizDifficulty = 'Easy' | 'Medium' | 'Hard';
+
+/**
+ * Fixed: Added missing AssessmentMode to resolve import error in QuizComponent.tsx
+ */
+export type AssessmentMode = 'type' | 'speak' | 'upload';
+
+export interface GameMission {
+    id: string;
+    type: 'unlock' | 'apply' | 'repair' | 'boss';
+    title: string;
+    objective: string;
+    concept: string;
+    challenge: {
+        prompt: string;
+        options?: string[];
+        correctAnswer: string;
+        logicHint: string;
+    };
+    rewardPower?: string;
+}
+
+export interface GameNPC {
+    id: string;
+    name: string;
+    role: string;
+    dialogue: string[];
+    position: [number, number, number];
+}
+
+export interface GameverseWorld {
+    id: string;
+    title: string;
+    theme: 'neon_city' | 'quantum_lab' | 'ancient_archive';
+    missions: GameMission[];
+    npcs: GameNPC[];
+    globalAbilities: string[];
+}
 
 export interface DiagramSpec {
   type: 'geometry' | 'graph' | 'shape' | 'circle' | 'triangle';
@@ -88,8 +128,6 @@ export interface Flashcard {
   tip?: string;
 }
 
-export type QuizDifficulty = 'Easy' | 'Medium' | 'Hard';
-
 export interface QuestionPaper {
   title: string;
   totalMarks: number;
@@ -150,10 +188,6 @@ export interface DebateScorecard {
   improvementSuggestion: string;
 }
 
-// ==========================================
-// LIVE MULTIPLAYER QUIZ TYPES
-// ==========================================
-
 export type LiveQuizStatus = 'lobby' | 'live' | 'finished';
 
 export interface LiveQuizRoom {
@@ -162,7 +196,7 @@ export interface LiveQuizRoom {
   hostUid: string;
   status: LiveQuizStatus;
   currentQuestionIndex: number;
-  questionStartTime: any; // Firestore Timestamp
+  questionStartTime: any;
   title: string;
   subject: string;
   createdAt: any;
@@ -183,28 +217,6 @@ export interface LiveQuizQuestion {
   options: string[];
   correctOptionIndex: number;
   explanation: string;
-}
-
-export interface PlayerPosition {
-  x: number;
-  y: number;
-}
-
-export interface Interaction {
-  id: number;
-  position: PlayerPosition;
-  prompt: string;
-  correct_answer: string;
-  success_message: string;
-  failure_message: string;
-}
-
-export interface GameLevel {
-  title: string;
-  goal: string;
-  player_start: PlayerPosition;
-  grid: { type: 'floor' | 'wall' | 'exit' }[][];
-  interactions: Interaction[];
 }
 
 export interface LabExperiment {
@@ -246,7 +258,6 @@ export interface LearningPath {
   }[];
 }
 
-// Added missing CareerRoadmap interface
 export interface CareerRoadmap {
   title: string;
   vision: string;

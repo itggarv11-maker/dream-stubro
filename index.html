@@ -14,27 +14,45 @@
       :root {
         --primary: #8b5cf6;
         --bg-deep: #010208;
+        --text-main: #f8fafc;
+        --accent-gold: #D4AF37;
       }
+      
+      [data-theme='light'] {
+        --bg-deep: #FFFEF2;
+        --text-main: #1A1A1A;
+        --primary: #D4AF37;
+        --card-bg: rgba(255, 255, 255, 0.8);
+      }
+
       body {
         font-family: 'Outfit', sans-serif;
         background-color: var(--bg-deep);
-        color: #f8fafc;
+        color: var(--text-main);
         margin: 0;
         padding: 0;
         overflow-x: hidden;
+        transition: background-color 0.5s ease, color 0.5s ease;
       }
+      
       .glass-card {
         background: rgba(10, 15, 30, 0.4);
         backdrop-filter: blur(40px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.05);
       }
+
+      [data-theme='light'] .glass-card {
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        box-shadow: 0 20px 50px rgba(212, 175, 55, 0.1);
+      }
+
       ::-webkit-scrollbar { width: 5px; }
-      ::-webkit-scrollbar-track { background: #010208; }
+      ::-webkit-scrollbar-track { background: var(--bg-deep); }
       ::-webkit-scrollbar-thumb { 
-        background: rgba(255,255,255,0.05);
+        background: rgba(139, 92, 246, 0.3);
         border-radius: 10px; 
       }
-      ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
       
       @keyframes neon-pulse {
         0%, 100% { opacity: 0.5; filter: blur(20px); }
@@ -42,6 +60,12 @@
       }
       .neon-glow {
         animation: neon-pulse 3s infinite ease-in-out;
+      }
+      
+      .legendary-gradient {
+        background: linear-gradient(135deg, #D4AF37 0%, #F9E29C 50%, #D4AF37 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
     </style>
   <script type="importmap">

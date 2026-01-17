@@ -1,186 +1,137 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Button from '../components/common/Button';
-import { useAuth } from '../contexts/AuthContext';
+import Card from '../components/common/Card';
 import { 
-    CheckBadgeIcon, SparklesIcon, ScaleIcon, RocketLaunchIcon, CalendarDaysIcon
+    SparklesIcon, RocketLaunchIcon, BoltIcon, StarIcon,
+    UsersIcon, BeakerIcon, BrainCircuitIcon, VideoCameraIcon,
+    ScaleIcon, DocumentDuplicateIcon
 } from '../components/icons';
-import Spinner from '../components/common/Spinner';
+import { useTheme } from '../contexts/ThemeContext';
 
 const HomePage: React.FC = () => {
-    const navigate = useNavigate();
     const { scrollY } = useScroll();
-    
-    // Logic typing effect words
-    const words = ["TOPS", "SPEED", "MASTERY"]; 
-    const [wordIndex, setWordIndex] = useState(0);
-    const [currentText, setCurrentText] = useState("");
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    // Dynamic Parallax
-    const heroY = useTransform(scrollY, [0, 500], [0, 100]);
-    const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-
-    useEffect(() => {
-        let timer: number;
-        const typingSpeed = isDeleting ? 30 : 60; 
-        const targetWord = words[wordIndex];
-
-        if (!isDeleting && currentText === targetWord) {
-            timer = window.setTimeout(() => setIsDeleting(true), 2500);
-        } else if (isDeleting && currentText === "") {
-            setIsDeleting(false);
-            setWordIndex((prev) => (prev + 1) % words.length);
-        } else {
-            timer = window.setTimeout(() => {
-                setCurrentText(prev => isDeleting ? prev.substring(0, prev.length - 1) : targetWord.substring(0, prev.length + 1));
-            }, typingSpeed);
-        }
-        return () => clearTimeout(timer);
-    }, [currentText, isDeleting, wordIndex]);
+    const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+    const { theme } = useTheme();
 
     return (
-        <div className="relative min-h-screen bg-[#010208] text-white selection:bg-cyan-500/30 overflow-x-hidden">
-            {/* Background Grid Layer */}
+        <div className="relative min-h-screen overflow-x-hidden">
+            {/* Ambient Background */}
             <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+                <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[1400px] h-[800px] rounded-full blur-[160px] opacity-40 transition-colors duration-1000 ${theme === 'dark' ? 'bg-violet-600/10' : 'bg-amber-400/10'}`}></div>
+                <div className={`absolute bottom-0 right-0 w-[1000px] h-[1000px] rounded-full blur-[200px] opacity-30 transition-colors duration-1000 ${theme === 'dark' ? 'bg-cyan-500/5' : 'bg-orange-300/5'}`}></div>
             </div>
 
-            {/* SOTA Hero Section */}
-            <header className="relative z-10 pt-32 pb-20 px-6 text-center lg:min-h-[90vh] flex flex-col justify-center items-center">
-                <motion.div style={{ y: heroY, opacity: heroOpacity }} className="max-w-7xl">
-                    <div className="flex flex-col items-center gap-6 mb-12">
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9 }} 
-                            animate={{ opacity: 1, scale: 1 }} 
-                            className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-full px-6 py-2 backdrop-blur-xl shadow-2xl"
-                        >
-                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300">Astra Engine v8.5 Active</span>
-                        </motion.div>
-
-                        <div className="flex items-center gap-8 md:gap-12 text-slate-500 font-black text-[10px] uppercase tracking-[0.3em] opacity-50">
-                            <span className="flex items-center gap-2"><CheckBadgeIcon className="w-4 h-4 text-emerald-500"/> NCERT Verified</span>
-                            <div className="w-1.5 h-1.5 bg-slate-800 rounded-full"></div>
-                            <span className="flex items-center gap-2"><SparklesIcon className="w-4 h-4 text-amber-500"/> Board 2025 Optimized</span>
-                        </div>
+            {/* HERO: OMEGA ELITE */}
+            <section className="relative z-10 pt-48 pb-32 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+                <motion.div style={{ y: heroY }} className="space-y-16">
+                    <div className="inline-flex items-center gap-3 px-8 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-2xl shadow-2xl">
+                        <StarIcon className="w-5 h-5 text-amber-500 animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-400">Omega Intelligence Core v10.0</span>
                     </div>
 
-                    <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tightest leading-[0.9] mb-12 uppercase drop-shadow-2xl">
-                        STUDY AT THE <br/>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-white/20">SPEED OF </span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-500 to-fuchsia-600 italic drop-shadow-[0_0_30px_rgba(139,92,246,0.3)]">
-                            {currentText}<span className="animate-pulse">_</span>
-                        </span>
+                    <h1 className="text-7xl md:text-[13rem] font-black tracking-tightest leading-[0.75] uppercase italic drop-shadow-[0_20px_100px_rgba(0,0,0,0.5)]">
+                        <span className="block mb-4">STOP <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-500">STUDYING.</span></span>
+                        <span className="legendary-gradient block">START MASTERING.</span>
                     </h1>
 
-                    <p className="text-slate-400 text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto mb-16 font-medium leading-relaxed tracking-tight px-10">
-                        The elite <span className="text-white">study infrastructure</span> used by India's top 1%. Transform notes into mastery with precision AI logic.
+                    <p className="text-slate-400 text-2xl md:text-4xl max-w-5xl mx-auto font-medium leading-relaxed italic">
+                        The ultimate AI study engine for India. <br className="hidden md:block" /> 
+                        Built to turn complex chapters into <span className="text-white border-b-4 border-amber-500">Neural Muscle Memory.</span>
                     </p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 md:gap-8">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-10 pt-12">
                         <Link to="/app">
-                            <Button size="lg" className="w-64 md:w-80 h-20 md:h-24 !text-xl md:!text-3xl !font-black uppercase tracking-tighter bg-white !text-slate-950 shadow-[0_40px_100px_rgba(255,255,255,0.15)] hover:scale-[1.03] transition-all !rounded-[2.5rem] italic">
-                                INITIALIZE →
+                            <Button size="lg" className="w-96 h-28 !text-3xl !font-black !rounded-full !bg-white !text-black shadow-[0_30px_100px_rgba(255,255,255,0.2)] hover:scale-110 transition-all italic group">
+                                ENTER ARENA &rarr;
                             </Button>
                         </Link>
-                        <Link to="/app" className="w-64 md:w-80 h-20 md:h-24 glass-card border-white/10 rounded-[2.5rem] flex items-center justify-center gap-6 hover:bg-white/5 transition-all group">
-                            <span className="text-xl md:text-2xl font-black uppercase tracking-widest text-slate-500 group-hover:text-white transition-colors italic">OPEN HQ</span>
+                        <Link to="/premium">
+                            <Button variant="outline" className="w-96 h-28 !text-2xl !font-black !rounded-full border-amber-500/20 hover:!bg-amber-500/10 italic text-amber-500">
+                                GO PREMIUM
+                            </Button>
                         </Link>
                     </div>
                 </motion.div>
-            </header>
+            </section>
 
-            {/* Performance Metrics */}
-            <section className="relative z-10 py-20 bg-[#05070f] border-y border-white/5 backdrop-blur-3xl overflow-hidden">
-                <div className="container mx-auto px-10 grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
-                    <StatBox value="101%" label="Accuracy Rate" color="text-cyan-400" />
-                    <StatBox value="0.18s" label="Response Speed" color="text-violet-400" />
-                    <StatBox value="850K+" label="Problems Solved" color="text-pink-400" />
-                    <StatBox value="Top 1%" label="User Results" color="text-emerald-400" />
+            {/* THE WORLD STANDARD */}
+            <section className="relative z-10 py-60 px-6 max-w-7xl mx-auto">
+                <div className="grid lg:grid-cols-2 gap-32 items-center">
+                    <div className="space-y-12">
+                        <h2 className="text-amber-500 font-black uppercase tracking-[1em] text-xs italic">Astra Cross-Level Engine</h2>
+                        <p className="text-6xl md:text-9xl font-black italic tracking-tighter uppercase leading-none">THE END OF <br/><span className="text-cyan-400">FAIR PLAY.</span></p>
+                        <p className="text-slate-500 text-2xl font-medium leading-relaxed italic">
+                            A Class 6 student in Hindi vs a Class 12 student in Chemistry. Our AI normalizes every question into a unified <span className="text-white">Skill Score</span>. Challenge anyone, anywhere.
+                        </p>
+                    </div>
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-amber-500/20 blur-[120px] rounded-full group-hover:opacity-100 opacity-50 transition-opacity"></div>
+                        <Card variant="dark" className="!p-16 border-white/5 !rounded-[5rem] shadow-2xl relative overflow-hidden">
+                             <div className="space-y-10">
+                                <LeaderboardRow name="Arjun (Cl. 6)" topic="SST" score="98.2" color="bg-cyan-500" />
+                                <LeaderboardRow name="Mehak (Cl. 10)" topic="Science" score="96.5" color="bg-violet-600" />
+                                <LeaderboardRow name="Rahul (Cl. 12)" topic="Phy" score="94.1" color="bg-amber-500" />
+                             </div>
+                             <p className="text-center text-[10px] font-black text-slate-600 uppercase tracking-widest mt-12 animate-pulse">Neural Normalization Active</p>
+                        </Card>
+                    </div>
                 </div>
             </section>
 
-            {/* Feature Bento Grid */}
-            <section className="relative z-10 px-6 md:px-20 py-32 bg-[#010208]">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col lg:flex-row justify-between items-end mb-24 gap-12">
-                        <div className="text-left">
-                            <h2 className="text-[11px] font-black text-violet-400 uppercase tracking-[1.5em] mb-6 italic opacity-60">Mastery Suite</h2>
-                            <p className="text-6xl md:text-8xl font-black tracking-tightest leading-none uppercase italic">COMMAND HQ</p>
-                        </div>
-                    </div>
+            {/* THE ARSENAL */}
+            <section className="relative z-10 py-40 px-6 max-w-[1800px] mx-auto">
+                <div className="text-center mb-32 space-y-4">
+                    <h2 className="text-violet-500 font-black uppercase tracking-[1em] text-[10px] italic">Strategic Tactical Units</h2>
+                    <p className="text-6xl md:text-[10rem] font-black italic tracking-tightest uppercase leading-none">THE STUBRO OMEGA</p>
+                </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
-                        <BentoBox 
-                            className="md:col-span-8 md:row-span-2 min-h-[550px]"
-                            icon={<ScaleIcon className="w-24 h-24" />}
-                            title="Brahmastra"
-                            tag="PRECISION CORE"
-                            desc="The world's most reliable mathematical logic engine. 101% error-free board solutions."
-                            color="bg-amber-500"
-                        />
-                        <BentoBox 
-                            className="md:col-span-4"
-                            icon={<RocketLaunchIcon className="w-12 h-12" />}
-                            title="Careers"
-                            tag="ASTRA ROADMAP"
-                            desc="Mapping your journey from grade 10 to world-class professional."
-                            color="bg-violet-600"
-                        />
-                        <BentoBox 
-                            className="md:col-span-4"
-                            icon={<CalendarDaysIcon className="w-12 h-12" />}
-                            title="War Plan"
-                            tag="STRATEGY"
-                            desc="Study schedules that adapt to your peak mental cycles."
-                            color="bg-pink-600"
-                        />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+                    <ToolCard icon={<DocumentDuplicateIcon/>} title="Summary" desc="Atomic level concept compression." tag="RECALL" />
+                    <ToolCard icon={<BrainCircuitIcon/>} title="Recall" desc="Spaced repetition engine." tag="MEMORY" />
+                    <ToolCard icon={<UsersIcon/>} title="Arena" desc="Real-time Cross-Level PVP." tag="BATTLE" />
+                    <ToolCard icon={<ScaleIcon/>} title="Proofs" desc="110% Error-free math logic." tag="LOGIC" />
+                </div>
+            </section>
+
+            {/* FINAL CTAs */}
+            <section className="relative z-10 py-60 px-6 text-center space-y-20">
+                <h2 className="text-6xl md:text-[15rem] font-black italic tracking-tighter uppercase leading-none opacity-10 select-none">LIMITLESS</h2>
+                <div className="max-w-4xl mx-auto">
+                    <h3 className="text-5xl md:text-9xl font-black italic uppercase tracking-tightest leading-none mb-10">EVERY CLASS.<br/><span className="text-amber-500">EVERY SUBJECT.</span></h3>
+                    <Link to="/signup"><Button className="h-32 px-24 !text-4xl !font-black !rounded-full shadow-2xl">LAUNCH ENGINE</Button></Link>
                 </div>
             </section>
         </div>
     );
 };
 
-const StatBox = ({ value, label, color }: any) => (
-    <div className="group cursor-default">
-        <p className={`text-5xl md:text-8xl font-black tracking-tightest ${color} transition-all duration-700 group-hover:scale-110`}>{value}</p>
-        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mt-4 italic">{label}</p>
+const LeaderboardRow = ({ name, topic, score, color }: any) => (
+    <div className="flex items-center justify-between p-8 bg-white/5 rounded-3xl border border-white/5 group hover:bg-white/10 transition-all">
+        <div className="flex items-center gap-6">
+            <div className={`w-12 h-12 ${color} rounded-full flex items-center justify-center font-black text-white`}>{name[0]}</div>
+            <div>
+                <p className="font-black text-white text-lg">{name}</p>
+                <p className="text-[10px] text-slate-500 uppercase font-black">{topic}</p>
+            </div>
+        </div>
+        <p className="text-4xl font-black italic legendary-gradient">{score}</p>
     </div>
 );
 
-const BentoBox = ({ className, icon, title, desc, color, tag }: any) => {
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    };
-
-    return (
-        <motion.div 
-            onMouseMove={handleMouseMove}
-            whileHover={{ scale: 1.015, y: -10 }}
-            className={`glass-card group overflow-hidden relative border-white/5 cursor-pointer shadow-[0_50px_150px_rgba(0,0,0,0.8)] transition-all duration-[0.6s] ${className} !rounded-[4rem]`}
-        >
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000"
-                style={{ background: `radial-gradient(1000px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.05), transparent 40%)` }}
-            />
-            <div className="relative z-10 p-12 md:p-16 h-full flex flex-col justify-end">
-                <div className="mb-12 flex justify-between items-start">
-                    <div className={`w-20 h-20 rounded-[2rem] ${color} bg-opacity-20 flex items-center justify-center text-white border border-white/10 group-hover:scale-110 transition-transform duration-700 shadow-2xl`}>
-                        {icon}
-                    </div>
-                    {tag && (
-                        <span className="text-[10px] font-black text-slate-500 bg-white/5 px-6 py-2.5 rounded-full border border-white/10 tracking-[0.4em] uppercase italic">{tag}</span>
-                    )}
-                </div>
-                <h3 className="text-4xl md:text-7xl font-black text-white mb-8 uppercase tracking-tightest group-hover:text-cyan-400 transition-colors leading-[0.8] italic">{title}</h3>
-                <p className="text-slate-400 text-xl md:text-2xl leading-relaxed font-medium group-hover:text-slate-200 transition-colors max-w-md">{desc}</p>
+const ToolCard = ({ icon, title, desc, tag }: any) => (
+    <motion.div whileHover={{ y: -20 }} className="group cursor-default">
+        <Card variant="dark" className="!p-12 border-white/5 h-full flex flex-col group-hover:border-amber-500/20 transition-all !rounded-[4rem]">
+            <div className="flex justify-between items-start mb-16">
+                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:bg-amber-500 group-hover:text-black transition-all">{icon}</div>
+                <span className="text-[10px] font-black text-slate-600 bg-white/5 px-4 py-1.5 rounded-full tracking-widest group-hover:text-amber-500">{tag}</span>
             </div>
-        </motion.div>
-    );
-};
+            <h4 className="text-4xl font-black uppercase italic mb-4">{title}</h4>
+            <p className="text-slate-500 text-lg font-medium italic leading-relaxed">{desc}</p>
+        </Card>
+    </motion.div>
+);
 
 export default HomePage;

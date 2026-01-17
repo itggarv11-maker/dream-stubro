@@ -11,33 +11,36 @@ import {
   updateDoc,
   getDocs,
   limit,
-  orderBy
+  orderBy,
+  increment
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { LiveQuizRoom, LiveQuizPlayer, LiveQuizQuestion } from '../types';
 
-/**
- * UTILS
- */
-const generateRoomCode = () => {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-};
+const generateRoomCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
 /**
  * ROOM MANAGEMENT
  */
-export const createLiveQuizRoom = async (hostName: string, title: string, subject: string, questions: LiveQuizQuestion[]): Promise<string> => {
+export const createLiveQuizRoom = async (
+  hostName: string, 
+  title: string, 
+  subject: string, 
+  questions: LiveQuizQuestion[], 
+  isCrossLevel: boolean = false
+): Promise<string> => {
   const user = auth.currentUser;
-  if (!user) throw new Error("Authentication required.");
+  if (!user) throw new Error("Neural session unauthorized.");
 
   const roomCode = generateRoomCode();
   const roomRef = doc(collection(db, 'liveQuizRooms'));
   const roomId = roomRef.id;
 
-  const roomData: Partial<LiveQuizRoom> = {
+  const roomData: any = {
     roomCode,
     hostUid: user.uid,
     status: 'lobby',
+    isCrossLevel,
     currentQuestionIndex: 0,
     questionStartTime: null,
     title,
@@ -47,15 +50,35 @@ export const createLiveQuizRoom = async (hostName: string, title: string, subjec
 
   await setDoc(roomRef, roomData);
 
-  // Add questions to subcollection
   for (let i = 0; i < questions.length; i++) {
     await setDoc(doc(db, 'liveQuizRooms', roomId, 'questions', i.toString()), questions[i]);
   }
 
-  // Join as host
   await joinLiveQuizRoom(roomId, hostName);
+  
+  // Add AI Bots if Cross-Level is requested to ensure arena is never empty
+  if (isCrossLevel) {
+    await addAiBot(roomId, "Astra_Bot_Alpha", "Class 8", "Science");
+    await addAiBot(roomId, "Neural_Bot_Beta", "Class 11", "Physics");
+  }
 
   return roomId;
+};
+
+const addAiBot = async (roomId: string, name: string, classLevel: string, subject: string) => {
+  const botUid = `ai_bot_${Math.random().toString(36).substr(2, 5)}`;
+  const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', botUid);
+  await setDoc(playerRef, {
+    uid: botUid,
+    name: name,
+    classLevel,
+    subject,
+    score: 0,
+    isAi: true,
+    hasAnswered: false,
+    answerTimeMs: 0,
+    joinedAt: serverTimestamp()
+  });
 };
 
 export const findRoomByCode = async (code: string): Promise<string | null> => {
@@ -67,18 +90,22 @@ export const findRoomByCode = async (code: string): Promise<string | null> => {
   return snap.docs[0].id;
 };
 
-export const joinLiveQuizRoom = async (roomId: string, playerName: string) => {
+export const joinLiveQuizRoom = async (roomId: string, playerName: string, classLevel?: string, subject?: string) => {
   const user = auth.currentUser;
-  if (!user) throw new Error("Authentication required.");
+  if (!user) throw new Error("Neural link failed.");
 
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', user.uid);
-  const playerData: LiveQuizPlayer = {
+  const playerData: any = {
     uid: user.uid,
     name: playerName,
+    classLevel: classLevel || "Any",
+    subject: subject || "General",
     score: 0,
+    streak: 0,
     hasAnswered: false,
     answerTimeMs: 0,
     isConnected: true,
+    isAi: false,
     joinedAt: serverTimestamp()
   };
 
@@ -86,7 +113,7 @@ export const joinLiveQuizRoom = async (roomId: string, playerName: string) => {
 };
 
 /**
- * GAME ACTIONS
+ * GAME ACTIONS: Neural Normalization Logic
  */
 export const startLiveQuiz = async (roomId: string) => {
   const roomRef = doc(db, 'liveQuizRooms', roomId);
@@ -97,44 +124,75 @@ export const startLiveQuiz = async (roomId: string) => {
   });
 };
 
-export const submitLiveAnswer = async (roomId: string, questionIndex: number, isCorrect: boolean, startTime: number) => {
+export const submitLiveAnswer = async (roomId: string, isCorrect: boolean, startTime: number) => {
   const user = auth.currentUser;
   if (!user) return;
 
-  const answerTimeMs = Date.now() - startTime;
-  const basePoints = 1000;
-  // Speed Bonus Logic: Linear decay over 15s
-  const speedBonus = Math.max(0, Math.floor(1000 * (1 - (answerTimeMs / 15000))));
-  const totalPoints = isCorrect ? (basePoints + speedBonus) : 0;
+  const roomSnap = await getDoc(doc(db, 'liveQuizRooms', roomId));
+  const isCrossLevel = roomSnap.data()?.isCrossLevel || false;
 
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', user.uid);
   const playerSnap = await getDoc(playerRef);
   if (!playerSnap.exists()) return;
 
-  const currentScore = playerSnap.data().score || 0;
+  const data = playerSnap.data();
+  const currentScore = data.score || 0;
+  const currentStreak = data.streak || 0;
+  const playerClass = data.classLevel || "Class 10";
+
+  const answerTimeMs = Date.now() - startTime;
+  
+  // SKILL SCORE NORMALIZATION (0-100 Per Round)
+  // Higher classes have higher complexity weight but lower baseline to normalize with Class 6
+  const classModifier = parseInt(playerClass.replace(/\D/g, '')) || 10;
+  const difficultyNormalization = 1 + (classModifier / 20); 
+
+  const basePoints = 70; // 70% based on accuracy
+  const speedBonus = Math.max(0, 30 * (1 - (answerTimeMs / 15000))); // 30% based on speed
+  
+  const rawRoundScore = isCorrect ? (basePoints + speedBonus) : 0;
+  const normalizedEarned = Math.round(rawRoundScore * difficultyNormalization);
 
   await updateDoc(playerRef, {
     hasAnswered: true,
     answerTimeMs: answerTimeMs,
-    score: currentScore + totalPoints
+    score: currentScore + normalizedEarned,
+    streak: isCorrect ? currentStreak + 1 : 0
   });
+
+  return { earnedPoints: normalizedEarned, isCorrect, streak: isCorrect ? currentStreak + 1 : 0 };
 };
 
 export const nextLiveQuestion = async (roomId: string, nextIndex: number, totalQuestions: number) => {
   const roomRef = doc(db, 'liveQuizRooms', roomId);
-  
   if (nextIndex >= totalQuestions) {
     await updateDoc(roomRef, { status: 'finished' });
     return;
   }
 
-  // Reset participant state for next round
   const playersSnap = await getDocs(collection(db, 'liveQuizRooms', roomId, 'players'));
   for (const p of playersSnap.docs) {
-    await updateDoc(doc(db, 'liveQuizRooms', roomId, 'players', p.id), {
-      hasAnswered: false,
-      answerTimeMs: 0
-    });
+    const pData = p.data();
+    
+    // Auto-Simulate AI Bots for next round
+    if (pData.isAi) {
+      const willBeCorrect = Math.random() > 0.3;
+      const simTime = 2000 + Math.random() * 8000;
+      const classModifier = parseInt(pData.classLevel.replace(/\D/g, '')) || 10;
+      const difficultyNormalization = 1 + (classModifier / 20);
+      const score = willBeCorrect ? Math.round((70 + (30 * (1 - (simTime / 15000)))) * difficultyNormalization) : 0;
+      
+      await updateDoc(doc(db, 'liveQuizRooms', roomId, 'players', p.id), {
+        hasAnswered: false,
+        answerTimeMs: 0,
+        score: increment(score)
+      });
+    } else {
+      await updateDoc(doc(db, 'liveQuizRooms', roomId, 'players', p.id), {
+        hasAnswered: false,
+        answerTimeMs: 0
+      });
+    }
   }
 
   await updateDoc(roomRef, {
@@ -146,29 +204,25 @@ export const nextLiveQuestion = async (roomId: string, nextIndex: number, totalQ
 /**
  * LISTENERS
  */
-export const listenToRoom = (roomId: string, callback: (room: LiveQuizRoom) => void) => {
+export const listenToRoom = (roomId: string, callback: (room: any) => void) => {
   return onSnapshot(doc(db, 'liveQuizRooms', roomId), (snap) => {
-    if (snap.exists()) {
-      callback({ id: snap.id, ...snap.data() } as LiveQuizRoom);
-    }
+    if (snap.exists()) callback({ id: snap.id, ...snap.data() });
   });
 };
 
-export const listenToPlayers = (roomId: string, callback: (players: LiveQuizPlayer[]) => void) => {
+export const listenToPlayers = (roomId: string, callback: (players: any[]) => void) => {
   const q = query(collection(db, 'liveQuizRooms', roomId, 'players'), orderBy('score', 'desc'));
   return onSnapshot(q, (snap) => {
-    const players = snap.docs.map(d => d.data() as LiveQuizPlayer);
-    callback(players);
+    callback(snap.docs.map(d => d.data()));
   });
 };
 
 export const getQuestion = async (roomId: string, index: number): Promise<LiveQuizQuestion | null> => {
   const qSnap = await getDoc(doc(db, 'liveQuizRooms', roomId, 'questions', index.toString()));
-  if (!qSnap.exists()) return null;
-  return qSnap.data() as LiveQuizQuestion;
+  return qSnap.exists() ? qSnap.data() as LiveQuizQuestion : null;
 };
 
 export const getAllQuestions = async (roomId: string): Promise<LiveQuizQuestion[]> => {
   const snap = await getDocs(collection(db, 'liveQuizRooms', roomId, 'questions'));
-  return snap.docs.map(d => d.data() as LiveQuizQuestion);
+  return snap.docs.map(d => d.data() as LiveQuizQuestion).sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
 };
