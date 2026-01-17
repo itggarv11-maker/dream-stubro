@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StuBro AI | Omega Astra</title>
+    <title>StuBro AI | Omega Titan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,16 +13,17 @@
     <style>
       :root {
         --primary: #8b5cf6;
-        --bg-deep: #010208;
+        --bg-deep: #02040a;
         --text-main: #f8fafc;
-        --accent-gold: #D4AF37;
+        --accent: #22d3ee;
       }
       
       [data-theme='light'] {
-        --bg-deep: #FFFEF2;
+        --bg-deep: #FFFDF0;
         --text-main: #1A1A1A;
         --primary: #D4AF37;
-        --card-bg: rgba(255, 255, 255, 0.8);
+        --accent: #B8860B;
+        --card-bg: rgba(255, 255, 255, 0.9);
       }
 
       body {
@@ -32,40 +33,47 @@
         margin: 0;
         padding: 0;
         overflow-x: hidden;
-        transition: background-color 0.5s ease, color 0.5s ease;
+        transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
       }
       
       .glass-card {
         background: rgba(10, 15, 30, 0.4);
-        backdrop-filter: blur(40px) saturate(180%);
+        backdrop-filter: blur(40px);
         border: 1px solid rgba(255, 255, 255, 0.05);
       }
 
       [data-theme='light'] .glass-card {
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.7);
         border: 1px solid rgba(212, 175, 55, 0.2);
-        box-shadow: 0 20px 50px rgba(212, 175, 55, 0.1);
+        box-shadow: 0 20px 60px rgba(212, 175, 55, 0.1);
       }
 
-      ::-webkit-scrollbar { width: 5px; }
-      ::-webkit-scrollbar-track { background: var(--bg-deep); }
-      ::-webkit-scrollbar-thumb { 
-        background: rgba(139, 92, 246, 0.3);
-        border-radius: 10px; 
-      }
-      
-      @keyframes neon-pulse {
-        0%, 100% { opacity: 0.5; filter: blur(20px); }
-        50% { opacity: 0.8; filter: blur(40px); }
-      }
-      .neon-glow {
-        animation: neon-pulse 3s infinite ease-in-out;
-      }
-      
-      .legendary-gradient {
+      .legendary-text {
         background: linear-gradient(135deg, #D4AF37 0%, #F9E29C 50%, #D4AF37 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+      }
+
+      .cyber-text {
+        background: linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: var(--bg-deep); }
+      ::-webkit-scrollbar-thumb { 
+        background: var(--primary);
+        border-radius: 10px; 
+        opacity: 0.5;
+      }
+
+      .re-animate-pulse {
+        animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      @keyframes pulse-ring {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: .5; transform: scale(1.05); }
       }
     </style>
   <script type="importmap">
