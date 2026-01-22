@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -39,21 +39,21 @@ import PersonalizedLearningPathPage from './pages/PersonalizedLearningPathPage';
 import DigitalLabPage from './pages/DigitalLabPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
-// Global Scroll-to-Top Protocol
+// Global Scroll-to-Top Protocol (Omni-SOTA Level)
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo(0, 0);
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
   return null;
 };
 
 const AppContent: React.FC = () => {
   return (
-    <div className="flex flex-col min-h-screen overflow-x-hidden bg-[var(--bg-deep)] text-[var(--text-main)] transition-colors duration-500">
+    <div className="flex flex-col min-h-screen overflow-x-hidden bg-[var(--bg-deep)] text-[var(--text-main)] transition-colors duration-500 selection:bg-violet-500/30">
       <ScrollToTop />
       <Header />
-      <main className="flex-grow w-full pt-16 md:pt-24">
+      <main className="flex-grow w-full pt-20 md:pt-32">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -87,10 +87,10 @@ const AppContent: React.FC = () => {
           <Route path="/real-world-applications" element={<ProtectedRoute><RealWorldApplicationPage /></ProtectedRoute>} />
           <Route path="/personalized-learning-path" element={<ProtectedRoute><PersonalizedLearningPathPage /></ProtectedRoute>} />
           
-          <Route path="/contact" element={<div className="container mx-auto px-4 py-12 md:py-20"><ContactPage /></div>} />
-          <Route path="/about" element={<div className="container mx-auto px-4 py-12 md:py-20"><AboutPage /></div>} />
-          <Route path="/privacy-policy" element={<div className="container mx-auto px-4 py-12 md:py-20"><PrivacyPolicyPage /></div>} />
-          <Route path="/premium" element={<div className="container mx-auto px-4 py-12 md:py-20"><PremiumPage /></div>} />
+          <Route path="/contact" element={<div className="container mx-auto px-6 py-12"><ContactPage /></div>} />
+          <Route path="/about" element={<div className="container mx-auto px-6 py-12"><AboutPage /></div>} />
+          <Route path="/privacy-policy" element={<div className="container mx-auto px-6 py-12"><PrivacyPolicyPage /></div>} />
+          <Route path="/premium" element={<div className="container mx-auto px-6 py-12"><PremiumPage /></div>} />
         </Routes>
       </main>
       <Footer />

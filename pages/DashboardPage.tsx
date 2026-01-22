@@ -26,10 +26,10 @@ import { Subject, ChatMessage } from '../types';
 import { Chat } from '@google/genai';
 
 const coreTools = [
-    { id: 'summary', icon: DocumentDuplicateIcon, title: 'Omega Summary', tag: '01', desc: 'Neural synthesis of entire chapters.', color: 'text-cyan-400', requiresContent: true },
-    { id: 'flashcards', icon: RectangleStackIcon, title: 'Recall Engine', tag: '02', desc: 'Atomic data points for active recall.', color: 'text-pink-400', requiresContent: true },
-    { id: 'quiz', icon: CheckBadgeIcon, title: 'Zenith Arena', tag: '03', desc: 'High-stakes curriculum validation.', color: 'text-emerald-400', requiresContent: true },
-    { id: 'chat', icon: ChatBubbleIcon, title: 'Expert Terminal', tag: '04', desc: 'Direct uplink to curriculum logic.', color: 'text-violet-400', requiresContent: true },
+    { id: 'summary', icon: DocumentDuplicateIcon, title: 'Smart Summary', tag: '01', desc: 'Synthesize chapters into visual notes.', color: 'text-cyan-400', requiresContent: true },
+    { id: 'flashcards', icon: RectangleStackIcon, title: 'Flashcards', tag: '02', desc: 'Active recall for better memory.', color: 'text-pink-400', requiresContent: true },
+    { id: 'quiz', icon: CheckBadgeIcon, title: 'Practice Quiz', tag: '03', desc: 'Test your knowledge on any topic.', color: 'text-emerald-400', requiresContent: true },
+    { id: 'chat', icon: ChatBubbleIcon, title: 'Doubt Solver AI', tag: '04', desc: 'Ask anything about your study material.', color: 'text-violet-400', requiresContent: true },
 ];
 
 const DashboardPage: React.FC = () => {
@@ -73,7 +73,8 @@ const DashboardPage: React.FC = () => {
                     setResultData(s);
                     break;
                 case 'flashcards':
-                    setResultData([{ term: "Conceptual Integrity", definition: "Consistency across logic nodes." }]);
+                    // In a real app, you'd generate these via Gemini
+                    setResultData([{ term: "Key Concept", definition: "The primary idea behind this section of text." }]);
                     break;
                 case 'quiz':
                     const q = await geminiService.generateQuiz(subject || Subject.Science, "Class 10", extractedText!, 5);
@@ -82,7 +83,7 @@ const DashboardPage: React.FC = () => {
                 case 'chat':
                     const session = geminiService.createGeneralChat(extractedText!);
                     setChatSession(session);
-                    setChatHistory([{ role: 'model', text: "Uplink stable. Core ready." }]);
+                    setChatHistory([{ role: 'model', text: "I'm ready. What would you like to clarify from your notes?" }]);
                     break;
                 default: throw new Error("Target node offline.");
             }
@@ -125,12 +126,12 @@ const DashboardPage: React.FC = () => {
         return (
             <div className="max-w-[1600px] mx-auto px-6 md:px-12 pb-40 animate-in fade-in duration-500">
                 <button onClick={resetAllState} className="flex items-center gap-4 text-[10px] font-black text-slate-500 hover:text-white mb-16 uppercase tracking-widest group">
-                    <div className="p-4 bg-slate-900 rounded-2xl group-hover:bg-violet-600 transition-all shadow-lg">&larr; ABORT MISSION</div>
+                    <div className="p-4 bg-slate-900 rounded-2xl group-hover:bg-violet-600 transition-all shadow-lg">&larr; BACK TO HQ</div>
                 </button>
                 {isLoading ? (
                     <div className="py-60 flex flex-col items-center gap-10">
                         <Spinner className="w-40 h-40" colorClass="bg-violet-500" />
-                        <p className="text-4xl font-black italic tracking-tightest text-white uppercase animate-pulse">Syncing Neural Cores...</p>
+                        <p className="text-4xl font-black italic tracking-tightest text-white uppercase animate-pulse">Processing Request...</p>
                     </div>
                 ) : (
                     <>
@@ -150,12 +151,12 @@ const DashboardPage: React.FC = () => {
                                     {isChatThinking && <div className="ml-10"><Spinner colorClass="bg-violet-500" /></div>}
                                 </div>
                                 <form onSubmit={(e) => { e.preventDefault(); handleSendChatMessage(); }} className="p-10 bg-black/60 border-t border-white/5 flex gap-6">
-                                    <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Type Logic Signal..." className="flex-grow bg-slate-950 border border-white/10 p-10 rounded-full text-white outline-none focus:border-violet-500 font-mono italic"/>
+                                    <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Type your doubt here..." className="flex-grow bg-slate-950 border border-white/10 p-10 rounded-full text-white outline-none focus:border-violet-500 font-mono italic"/>
                                     <button type="submit" disabled={!chatInput.trim() || isChatThinking} className="w-24 h-24 rounded-full bg-violet-600 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl">
                                         <PaperAirplaneIcon className="w-10 h-10 text-white" />
                                     </button>
                                 </form>
-                            </Card>
+                             </Card>
                         )}
                     </>
                 )}
@@ -168,17 +169,17 @@ const DashboardPage: React.FC = () => {
             {/* APEX COMMAND HEADER */}
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 border-b border-white/5 pb-16 pt-10 relative overflow-hidden">
                 <div className="relative z-10">
-                    <h1 className={`text-[11px] font-black uppercase tracking-[1em] mb-4 italic ${theme === 'dark' ? 'text-cyan-400' : 'text-amber-600'}`}>Operational HQ</h1>
+                    <h1 className={`text-[11px] font-black uppercase tracking-[1em] mb-4 italic ${theme === 'dark' ? 'text-cyan-400' : 'text-amber-600'}`}>Command Dashboard</h1>
                     <div className="flex items-center gap-6">
                         <div className="p-5 bg-white/5 rounded-3xl border border-white/10 shadow-2xl"><RocketLaunchIcon className={`w-12 h-12 ${theme === 'dark' ? 'text-violet-400' : 'text-amber-500'}`}/></div>
-                        <h2 className="text-6xl md:text-[10rem] font-black tracking-tightest uppercase italic leading-none">{subject || "IDLE"}</h2>
+                        <h2 className="text-6xl md:text-[10rem] font-black tracking-tightest uppercase italic leading-none">{subject || "SELECT SUBJECT"}</h2>
                     </div>
                 </div>
                 
                 <div className="flex flex-col md:flex-row items-end md:items-center gap-10 relative z-10">
                     <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 italic">Agent Class: Apex Student</p>
-                        <p className="text-4xl font-black italic tracking-tighter uppercase">{userName?.split(' ')[0] || "USER"}</p>
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 italic">Welcome Back,</p>
+                        <p className="text-4xl font-black italic tracking-tighter uppercase">{userName?.split(' ')[0] || "STUDENT"}</p>
                     </div>
                     <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 backdrop-blur-3xl space-y-3 min-w-[280px]">
                         <div className="flex justify-between items-center text-[9px] font-black text-slate-500 uppercase tracking-widest">
@@ -197,7 +198,7 @@ const DashboardPage: React.FC = () => {
                 
                 <div className="lg:col-span-4 space-y-10">
                     <div className="space-y-6">
-                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[1em] italic">01. Neural Core</h3>
+                        <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[1em] italic">Essential Tools</h3>
                         <div className="grid grid-cols-1 gap-4">
                             {coreTools.map(tool => (
                                 <motion.div 
@@ -213,7 +214,7 @@ const DashboardPage: React.FC = () => {
                                             <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{tool.desc}</p>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-black opacity-10 group-hover:opacity-100 group-hover:text-violet-500 transition-all italic">READY</span>
+                                    <span className="text-[10px] font-black opacity-10 group-hover:opacity-100 group-hover:text-violet-500 transition-all italic">OPEN</span>
                                 </motion.div>
                             ))}
                         </div>
@@ -221,8 +222,8 @@ const DashboardPage: React.FC = () => {
 
                     <Card variant="dark" className="!p-10 !rounded-[3.5rem] border-white/5 relative overflow-hidden bg-gradient-to-br from-violet-600/10 to-transparent group cursor-pointer" onClick={() => navigate('/career-guidance')}>
                         <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:rotate-12 transition-transform duration-700"><RocketLaunchIcon className="w-32 h-32"/></div>
-                        <h4 className="text-xs font-black text-violet-500 uppercase tracking-[0.5em] mb-4">Apex Pathway</h4>
-                        <h3 className="text-4xl font-black text-white uppercase italic tracking-tightest leading-none mb-6">DESTINY TREE</h3>
+                        <h4 className="text-xs font-black text-violet-500 uppercase tracking-[0.5em] mb-4">Planning</h4>
+                        <h3 className="text-4xl font-black text-white uppercase italic tracking-tightest leading-none mb-6">CAREER ROADMAP</h3>
                         <p className="text-slate-500 text-sm font-medium italic leading-relaxed">Visual skill-roadmaps for your specific professional ambition.</p>
                     </Card>
                 </div>
@@ -237,11 +238,11 @@ const DashboardPage: React.FC = () => {
                             <div className="flex-grow space-y-8 text-center md:text-left">
                                 <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-inner">
                                     <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest italic">Live Arena Active</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest italic">Live Multiplayer Active</span>
                                 </div>
-                                <h3 className="text-7xl md:text-[10rem] font-black text-white italic tracking-tightest uppercase leading-none">THE ARENA</h3>
-                                <p className="text-xl md:text-2xl text-slate-400 font-medium italic leading-relaxed max-w-xl">Real-time competitive logic battles. Cross-level matchmaking optimized for 99th percentile dominance. Prove your rank.</p>
-                                <Button size="lg" className="h-24 px-16 !text-2xl !font-black !rounded-full !bg-white !text-black shadow-2xl hover:scale-105 transition-all italic">ENTER ARENA &rarr;</Button>
+                                <h3 className="text-7xl md:text-[8rem] font-black text-white italic tracking-tightest uppercase leading-none">GROUP QUIZ</h3>
+                                <p className="text-xl md:text-2xl text-slate-400 font-medium italic leading-relaxed max-w-xl">Real-time competitive logic battles. Challenge your classmates and prove your mastery.</p>
+                                <Button size="lg" className="h-24 px-16 !text-2xl !font-black !rounded-full !bg-white !text-black shadow-2xl hover:scale-105 transition-all italic">ENTER THE ARENA &rarr;</Button>
                             </div>
                          </Card>
                     </div>
@@ -250,17 +251,17 @@ const DashboardPage: React.FC = () => {
                         <Card variant="dark" className="!p-12 !rounded-[4rem] border-white/5 hover:border-pink-500/30 transition-all cursor-pointer bg-slate-900/30 group" onClick={() => navigate('/study-planner')}>
                              <div className="flex items-center gap-6 mb-8">
                                 <div className="p-4 bg-pink-500/10 rounded-2xl border border-pink-500/20 text-pink-500 group-hover:scale-110 transition-transform"><CalendarDaysIcon className="w-10 h-10"/></div>
-                                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">WAR ROOM</h3>
+                                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">STUDY PLANNER</h3>
                              </div>
-                             <p className="text-slate-500 text-base font-medium italic leading-relaxed">Constraint-based tactical study scheduling. Peak focus optimization.</p>
+                             <p className="text-slate-500 text-base font-medium italic leading-relaxed">Optimize your weekly schedule for peak focus and revision.</p>
                         </Card>
 
-                        <Card variant="dark" className="!p-12 !rounded-[4rem] border-white/5 hover:border-violet-500/30 transition-all cursor-pointer bg-slate-900/30 group" onClick={() => handleToolClick('quiz', true)}>
+                        <Card variant="dark" className="!p-12 !rounded-[4rem] border-white/5 hover:border-violet-500/30 transition-all cursor-pointer bg-slate-900/30 group" onClick={() => navigate('/chapter-conquest')}>
                              <div className="flex items-center gap-6 mb-8">
                                 <div className="p-4 bg-violet-500/10 rounded-2xl border border-violet-500/20 text-violet-500 group-hover:scale-110 transition-transform"><QuestIcon className="w-10 h-10"/></div>
-                                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">GAMEVERSE</h3>
+                                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">3D LEARNING</h3>
                              </div>
-                             <p className="text-slate-500 text-base font-medium italic leading-relaxed">Play your curriculum as a high-fidelity 3D mission. Knowledge is your XP.</p>
+                             <p className="text-slate-500 text-base font-medium italic leading-relaxed">Play your syllabus as a high-fidelity 3D mission in the Gameverse.</p>
                         </Card>
                     </div>
                 </div>
@@ -275,11 +276,11 @@ const DashboardPage: React.FC = () => {
                              <div className="w-32 h-32 rounded-[2.5rem] bg-violet-600/10 border border-violet-500/20 mx-auto flex items-center justify-center shadow-2xl">
                                 <BoltIcon className="w-16 h-16 text-violet-500" />
                              </div>
-                             <h3 className="text-6xl font-black italic tracking-tightest uppercase text-white leading-none">NEURAL SYNC <br/> REQUIRED</h3>
-                             <p className="text-2xl text-slate-400 font-medium italic leading-relaxed">This operational module requires chapter data to synthesize results. Synergize your notes or curriculum content to proceed.</p>
+                             <h3 className="text-6xl font-black italic tracking-tightest uppercase text-white leading-none">CONTENT SYNC <br/> REQUIRED</h3>
+                             <p className="text-2xl text-slate-400 font-medium italic leading-relaxed">Please add your chapter notes or textbook content first so the AI can analyze your specific syllabus.</p>
                              <div className="flex flex-col md:flex-row gap-6 justify-center">
-                                 <Link to="/new-session" className="flex-grow"><Button size="lg" className="w-full h-24 !text-2xl !font-black !rounded-full !bg-white !text-black shadow-2xl hover:scale-105 transition-all">SYNC CONTENT NOW &rarr;</Button></Link>
-                                 <Button onClick={() => setShowSyncModal(false)} variant="outline" className="h-24 px-12 !text-xl !font-black !rounded-full border-white/10 italic">CLOSE NODE</Button>
+                                 <Link to="/new-session" className="flex-grow"><Button size="lg" className="w-full h-24 !text-2xl !font-black !rounded-full !bg-white !text-black shadow-2xl hover:scale-105 transition-all">ADD CONTENT NOW &rarr;</Button></Link>
+                                 <Button onClick={() => setShowSyncModal(false)} variant="outline" className="h-24 px-12 !text-xl !font-black !rounded-full border-white/10 italic">CANCEL</Button>
                              </div>
                          </Card>
                     </motion.div>

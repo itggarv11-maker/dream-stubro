@@ -26,21 +26,31 @@
         --card-bg: rgba(255, 255, 255, 0.9);
       }
 
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html, body {
+        width: 100%;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+      }
+
       body {
         font-family: 'Outfit', sans-serif;
         background-color: var(--bg-deep);
         color: var(--text-main);
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-        transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
+        transition: background-color 0.4s ease;
         -webkit-font-smoothing: antialiased;
       }
       
       .glass-card {
-        background: rgba(10, 15, 30, 0.4);
-        backdrop-filter: blur(40px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(10, 15, 30, 0.6);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .legendary-text {
@@ -57,14 +67,22 @@
 
       .text-balance { text-wrap: balance; }
 
+      /* Prevent huge text on mobile */
+      @media (max-width: 640px) {
+        .mobile-safe-text {
+          font-size: 2.25rem !important; /* text-4xl */
+          line-height: 2.5rem !important;
+        }
+        .container {
+          padding-left: 1rem !important;
+          padding-right: 1rem !important;
+        }
+      }
+
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-thumb { 
         background: var(--primary);
         border-radius: 10px; 
-      }
-
-      @media (max-width: 768px) {
-        h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
       }
     </style>
   <script type="importmap">
