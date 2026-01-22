@@ -3,7 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <title>StuBro AI | Omega Titan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -34,18 +34,13 @@
         padding: 0;
         overflow-x: hidden;
         transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
+        -webkit-font-smoothing: antialiased;
       }
       
       .glass-card {
         background: rgba(10, 15, 30, 0.4);
         backdrop-filter: blur(40px);
         border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-
-      [data-theme='light'] .glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(212, 175, 55, 0.2);
-        box-shadow: 0 20px 60px rgba(212, 175, 55, 0.1);
       }
 
       .legendary-text {
@@ -60,20 +55,16 @@
         -webkit-text-fill-color: transparent;
       }
 
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: var(--bg-deep); }
+      .text-balance { text-wrap: balance; }
+
+      ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-thumb { 
         background: var(--primary);
         border-radius: 10px; 
-        opacity: 0.5;
       }
 
-      .re-animate-pulse {
-        animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-      @keyframes pulse-ring {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: .5; transform: scale(1.05); }
+      @media (max-width: 768px) {
+        h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
       }
     </style>
   <script type="importmap">
