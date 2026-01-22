@@ -27,10 +27,10 @@ export const createLiveQuizRoom = async (
   title: string, 
   subject: string, 
   questions: LiveQuizQuestion[], 
-  isCrossLevel: boolean = false
+  addAi: boolean = true
 ): Promise<string> => {
   const user = auth.currentUser;
-  if (!user) throw new Error("Neural session unauthorized.");
+  if (!user) throw new Error("Unauthorized access node.");
 
   const roomCode = generateRoomCode();
   const roomRef = doc(collection(db, 'liveQuizRooms'));
@@ -40,7 +40,6 @@ export const createLiveQuizRoom = async (
     roomCode,
     hostUid: user.uid,
     status: 'lobby',
-    isCrossLevel,
     currentQuestionIndex: 0,
     questionStartTime: null,
     title,
@@ -50,30 +49,28 @@ export const createLiveQuizRoom = async (
 
   await setDoc(roomRef, roomData);
 
-  for (let i = 0; i < questions.length; i++) {
-    await setDoc(doc(db, 'liveQuizRooms', roomId, 'questions', i.toString()), questions[i]);
-  }
+  // High-Speed Question Mapping
+  const batch = questions.map((q, i) => setDoc(doc(db, 'liveQuizRooms', roomId, 'questions', i.toString()), { ...q, index: i }));
+  await Promise.all(batch);
 
   await joinLiveQuizRoom(roomId, hostName);
   
-  // Add AI Bots if Cross-Level is requested to ensure arena is never empty
-  if (isCrossLevel) {
-    await addAiBot(roomId, "Astra_Bot_Alpha", "Class 8", "Science");
-    await addAiBot(roomId, "Neural_Bot_Beta", "Class 11", "Physics");
+  if (addAi) {
+    await addAiBot(roomId, "ZENITH_BOT_01");
+    await addAiBot(roomId, "OMEGA_BOT_X");
   }
 
   return roomId;
 };
 
-const addAiBot = async (roomId: string, name: string, classLevel: string, subject: string) => {
+const addAiBot = async (roomId: string, name: string) => {
   const botUid = `ai_bot_${Math.random().toString(36).substr(2, 5)}`;
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', botUid);
   await setDoc(playerRef, {
     uid: botUid,
     name: name,
-    classLevel,
-    subject,
     score: 0,
+    streak: 0,
     isAi: true,
     hasAnswered: false,
     answerTimeMs: 0,
@@ -90,16 +87,14 @@ export const findRoomByCode = async (code: string): Promise<string | null> => {
   return snap.docs[0].id;
 };
 
-export const joinLiveQuizRoom = async (roomId: string, playerName: string, classLevel?: string, subject?: string) => {
+export const joinLiveQuizRoom = async (roomId: string, playerName: string) => {
   const user = auth.currentUser;
-  if (!user) throw new Error("Neural link failed.");
+  if (!user) throw new Error("Uplink failed.");
 
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', user.uid);
-  const playerData: any = {
+  await setDoc(playerRef, {
     uid: user.uid,
     name: playerName,
-    classLevel: classLevel || "Any",
-    subject: subject || "General",
     score: 0,
     streak: 0,
     hasAnswered: false,
@@ -107,13 +102,11 @@ export const joinLiveQuizRoom = async (roomId: string, playerName: string, class
     isConnected: true,
     isAi: false,
     joinedAt: serverTimestamp()
-  };
-
-  await setDoc(playerRef, playerData);
+  });
 };
 
 /**
- * GAME ACTIONS: Neural Normalization Logic
+ * GAME ACTIONS
  */
 export const startLiveQuiz = async (roomId: string) => {
   const roomRef = doc(db, 'liveQuizRooms', roomId);
@@ -128,9 +121,6 @@ export const submitLiveAnswer = async (roomId: string, isCorrect: boolean, start
   const user = auth.currentUser;
   if (!user) return;
 
-  const roomSnap = await getDoc(doc(db, 'liveQuizRooms', roomId));
-  const isCrossLevel = roomSnap.data()?.isCrossLevel || false;
-
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', user.uid);
   const playerSnap = await getDoc(playerRef);
   if (!playerSnap.exists()) return;
@@ -138,29 +128,20 @@ export const submitLiveAnswer = async (roomId: string, isCorrect: boolean, start
   const data = playerSnap.data();
   const currentScore = data.score || 0;
   const currentStreak = data.streak || 0;
-  const playerClass = data.classLevel || "Class 10";
 
   const answerTimeMs = Date.now() - startTime;
-  
-  // SKILL SCORE NORMALIZATION (0-100 Per Round)
-  // Higher classes have higher complexity weight but lower baseline to normalize with Class 6
-  const classModifier = parseInt(playerClass.replace(/\D/g, '')) || 10;
-  const difficultyNormalization = 1 + (classModifier / 20); 
-
-  const basePoints = 70; // 70% based on accuracy
-  const speedBonus = Math.max(0, 30 * (1 - (answerTimeMs / 15000))); // 30% based on speed
-  
-  const rawRoundScore = isCorrect ? (basePoints + speedBonus) : 0;
-  const normalizedEarned = Math.round(rawRoundScore * difficultyNormalization);
+  const basePoints = 1000;
+  const speedBonus = Math.max(0, 500 * (1 - (answerTimeMs / 15000)));
+  const rawRoundScore = isCorrect ? Math.round(basePoints + speedBonus) : 0;
 
   await updateDoc(playerRef, {
     hasAnswered: true,
     answerTimeMs: answerTimeMs,
-    score: currentScore + normalizedEarned,
+    score: currentScore + rawRoundScore,
     streak: isCorrect ? currentStreak + 1 : 0
   });
 
-  return { earnedPoints: normalizedEarned, isCorrect, streak: isCorrect ? currentStreak + 1 : 0 };
+  return { earnedPoints: rawRoundScore, isCorrect, streak: isCorrect ? currentStreak + 1 : 0 };
 };
 
 export const nextLiveQuestion = async (roomId: string, nextIndex: number, totalQuestions: number) => {
@@ -170,31 +151,22 @@ export const nextLiveQuestion = async (roomId: string, nextIndex: number, totalQ
     return;
   }
 
-  const playersSnap = await getDocs(collection(db, 'liveQuizRooms', roomId, 'players'));
-  for (const p of playersSnap.docs) {
+  const playersRef = collection(db, 'liveQuizRooms', roomId, 'players');
+  const playersSnap = await getDocs(playersRef);
+  
+  // High-Speed State Resets & Bot Logic
+  const updates = playersSnap.docs.map(p => {
     const pData = p.data();
-    
-    // Auto-Simulate AI Bots for next round
+    const pRef = doc(db, 'liveQuizRooms', roomId, 'players', p.id);
     if (pData.isAi) {
-      const willBeCorrect = Math.random() > 0.3;
-      const simTime = 2000 + Math.random() * 8000;
-      const classModifier = parseInt(pData.classLevel.replace(/\D/g, '')) || 10;
-      const difficultyNormalization = 1 + (classModifier / 20);
-      const score = willBeCorrect ? Math.round((70 + (30 * (1 - (simTime / 15000)))) * difficultyNormalization) : 0;
-      
-      await updateDoc(doc(db, 'liveQuizRooms', roomId, 'players', p.id), {
-        hasAnswered: false,
-        answerTimeMs: 0,
-        score: increment(score)
-      });
-    } else {
-      await updateDoc(doc(db, 'liveQuizRooms', roomId, 'players', p.id), {
-        hasAnswered: false,
-        answerTimeMs: 0
-      });
+        const correct = Math.random() > 0.35;
+        const pts = correct ? Math.round(1000 + (Math.random() * 400)) : 0;
+        return updateDoc(pRef, { hasAnswered: false, score: increment(pts) });
     }
-  }
+    return updateDoc(pRef, { hasAnswered: false });
+  });
 
+  await Promise.all(updates);
   await updateDoc(roomRef, {
     currentQuestionIndex: nextIndex,
     questionStartTime: serverTimestamp()

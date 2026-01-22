@@ -52,8 +52,11 @@ const AppContent: React.FC = () => {
           <Route path="/new-session" element={<ProtectedRoute><NewSessionPage /></ProtectedRoute>} />
           <Route path="/question-paper" element={<ProtectedRoute><QuestionPaperPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          
+          {/* ARENA: Shared access for host (protected) and joiner (public) */}
           <Route path="/group-quiz" element={<ProtectedRoute><GroupQuizPage /></ProtectedRoute>} />
           <Route path="/live/:roomCode" element={<GroupQuizPage />} />
+          
           <Route path="/career-guidance" element={<ProtectedRoute><CareerGuidancePage /></ProtectedRoute>} />
           <Route path="/study-planner" element={<ProtectedRoute><StudyPlannerPage /></ProtectedRoute>} />
           <Route path="/mind-map" element={<ProtectedRoute><MindMapPage /></ProtectedRoute>} />
