@@ -49,15 +49,23 @@ export const createLiveQuizRoom = async (
 
   await setDoc(roomRef, roomData);
 
-  // High-Speed Question Mapping
-  const batch = questions.map((q, i) => setDoc(doc(db, 'liveQuizRooms', roomId, 'questions', i.toString()), { ...q, index: i }));
+  // Synchronized Question Storage
+  const batch = questions.map((q, i) => {
+      return setDoc(doc(db, 'liveQuizRooms', roomId, 'questions', i.toString()), { 
+          questionText: q.questionText || (q as any).question || "Undefined Logic Node",
+          options: q.options || [],
+          correctOptionIndex: q.correctOptionIndex ?? 0,
+          explanation: q.explanation || "System logic verified.",
+          index: i 
+      });
+  });
   await Promise.all(batch);
 
   await joinLiveQuizRoom(roomId, hostName);
   
   if (addAi) {
-    await addAiBot(roomId, "ZENITH_BOT_01");
-    await addAiBot(roomId, "OMEGA_BOT_X");
+    await addAiBot(roomId, "ZENITH_BOT_ALPHA");
+    await addAiBot(roomId, "OMEGA_SYNTH_X");
   }
 
   return roomId;
@@ -79,22 +87,21 @@ const addAiBot = async (roomId: string, name: string) => {
 };
 
 export const findRoomByCode = async (code: string): Promise<string | null> => {
+  if (!code) return null;
   const q = query(collection(db, 'liveQuizRooms'), where('roomCode', '==', code.toUpperCase()), limit(1));
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  const data = snap.docs[0].data();
-  if (data.status === 'finished') return null;
   return snap.docs[0].id;
 };
 
 export const joinLiveQuizRoom = async (roomId: string, playerName: string) => {
   const user = auth.currentUser;
-  if (!user) throw new Error("Uplink failed.");
+  if (!user) throw new Error("Authentication node offline.");
 
   const playerRef = doc(db, 'liveQuizRooms', roomId, 'players', user.uid);
   await setDoc(playerRef, {
     uid: user.uid,
-    name: playerName,
+    name: playerName.toUpperCase(),
     score: 0,
     streak: 0,
     hasAnswered: false,
@@ -102,7 +109,7 @@ export const joinLiveQuizRoom = async (roomId: string, playerName: string) => {
     isConnected: true,
     isAi: false,
     joinedAt: serverTimestamp()
-  });
+  }, { merge: true });
 };
 
 /**
@@ -154,12 +161,11 @@ export const nextLiveQuestion = async (roomId: string, nextIndex: number, totalQ
   const playersRef = collection(db, 'liveQuizRooms', roomId, 'players');
   const playersSnap = await getDocs(playersRef);
   
-  // High-Speed State Resets & Bot Logic
   const updates = playersSnap.docs.map(p => {
     const pData = p.data();
     const pRef = doc(db, 'liveQuizRooms', roomId, 'players', p.id);
     if (pData.isAi) {
-        const correct = Math.random() > 0.35;
+        const correct = Math.random() > 0.4;
         const pts = correct ? Math.round(1000 + (Math.random() * 400)) : 0;
         return updateDoc(pRef, { hasAnswered: false, score: increment(pts) });
     }
@@ -189,12 +195,12 @@ export const listenToPlayers = (roomId: string, callback: (players: any[]) => vo
   });
 };
 
-export const getQuestion = async (roomId: string, index: number): Promise<LiveQuizQuestion | null> => {
+export const getQuestion = async (roomId: string, index: number): Promise<any | null> => {
   const qSnap = await getDoc(doc(db, 'liveQuizRooms', roomId, 'questions', index.toString()));
-  return qSnap.exists() ? qSnap.data() as LiveQuizQuestion : null;
+  return qSnap.exists() ? qSnap.data() : null;
 };
 
-export const getAllQuestions = async (roomId: string): Promise<LiveQuizQuestion[]> => {
+export const getAllQuestions = async (roomId: string): Promise<any[]> => {
   const snap = await getDocs(collection(db, 'liveQuizRooms', roomId, 'questions'));
-  return snap.docs.map(d => d.data() as LiveQuizQuestion).sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
+  return snap.docs.map(d => d.data()).sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
 };

@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
@@ -39,22 +39,33 @@ import PersonalizedLearningPathPage from './pages/PersonalizedLearningPathPage';
 import DigitalLabPage from './pages/DigitalLabPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
+// Global Scroll-to-Top Protocol
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
 const AppContent: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden bg-[var(--bg-deep)] text-[var(--text-main)] transition-colors duration-500">
+      <ScrollToTop />
       <Header />
-      <main className="flex-grow w-full py-20">
+      <main className="flex-grow w-full pt-16 md:pt-24">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          
           <Route path="/app" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/new-session" element={<ProtectedRoute><NewSessionPage /></ProtectedRoute>} />
           <Route path="/question-paper" element={<ProtectedRoute><QuestionPaperPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          
-          {/* ARENA: Shared access for host (protected) and joiner (public) */}
           <Route path="/group-quiz" element={<ProtectedRoute><GroupQuizPage /></ProtectedRoute>} />
+          
+          {/* PUBLIC ARENA ACCESS */}
           <Route path="/live/:roomCode" element={<GroupQuizPage />} />
           
           <Route path="/career-guidance" element={<ProtectedRoute><CareerGuidancePage /></ProtectedRoute>} />
@@ -75,10 +86,11 @@ const AppContent: React.FC = () => {
           <Route path="/exam-predictor" element={<ProtectedRoute><ExamPredictorPage /></ProtectedRoute>} />
           <Route path="/real-world-applications" element={<ProtectedRoute><RealWorldApplicationPage /></ProtectedRoute>} />
           <Route path="/personalized-learning-path" element={<ProtectedRoute><PersonalizedLearningPathPage /></ProtectedRoute>} />
-          <Route path="/contact" element={<div className="container mx-auto px-4"><ContactPage /></div>} />
-          <Route path="/about" element={<div className="container mx-auto px-4"><AboutPage /></div>} />
-          <Route path="/privacy-policy" element={<div className="container mx-auto px-4"><PrivacyPolicyPage /></div>} />
-          <Route path="/premium" element={<div className="container mx-auto px-4"><PremiumPage /></div>} />
+          
+          <Route path="/contact" element={<div className="container mx-auto px-4 py-12 md:py-20"><ContactPage /></div>} />
+          <Route path="/about" element={<div className="container mx-auto px-4 py-12 md:py-20"><AboutPage /></div>} />
+          <Route path="/privacy-policy" element={<div className="container mx-auto px-4 py-12 md:py-20"><PrivacyPolicyPage /></div>} />
+          <Route path="/premium" element={<div className="container mx-auto px-4 py-12 md:py-20"><PremiumPage /></div>} />
         </Routes>
       </main>
       <Footer />

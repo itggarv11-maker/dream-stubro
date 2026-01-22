@@ -26,11 +26,47 @@ const enforceToken = async () => {
     if (!hasTokens) throw new Error("ASCENSION_REQUIRED: Neural tokens depleted.");
 };
 
-const SYSTEM_FORMATTING = "MANDATORY FORMATTING: NEVER use dollar signs ($) or any LaTeX. Use Rich Markdown: Use **Double Asterisks** for results. Use *Single Asterisks* for terms.";
+const SYSTEM_FORMATTING = "MANDATORY FORMATTING: NEVER use LaTeX or dollar signs ($). Return raw text or JSON. For Math, use plain text like 'x^2' or 'Divided by'. No personalized data inquires. Return only academic content.";
 
 /**
- * STUBRO GAMEVERSE ENGINE - Optimized for Flash Speed
+ * LIVE ARENA GENERATOR - Strictly schemas
  */
+export const generateLiveQuizQuestions = async (topic: string, count: number = 5): Promise<LiveQuizQuestion[]> => {
+    await enforceToken();
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Topic Logic: "${topic.substring(0, 4000)}". Generate ${count} ultra-competitive quiz questions. Each with exactly 4 options. Output raw JSON array only. Keys: "questionText", "options", "correctOptionIndex", "explanation".`,
+        config: { 
+            systemInstruction: "You are the Zenith Arena Master. Output high-stakes academic questions in strict JSON. No conversational filler. No LaTeX.",
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        questionText: { type: Type.STRING },
+                        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        correctOptionIndex: { type: Type.NUMBER },
+                        explanation: { type: Type.STRING }
+                    },
+                    required: ["questionText", "options", "correctOptionIndex", "explanation"]
+                }
+            }
+        }
+    });
+    
+    try {
+        const data = JSON.parse(response.text || "[]");
+        await deductToken();
+        return data;
+    } catch (e) {
+        console.error("Quiz Parser Fault:", e);
+        throw new Error("Logic Sync Failure. Chapter data too complex.");
+    }
+};
+
+// ... preservation of all other logic nodes ...
 export const generateGameverseWorld = async (text: string): Promise<GameverseWorld> => {
     await enforceToken();
     const ai = getAI();
@@ -98,19 +134,6 @@ export const generateGameverseWorld = async (text: string): Promise<GameverseWor
     localStorage.setItem(cacheKey, JSON.stringify(world));
     await deductToken();
     return world;
-};
-
-// ... preservation of all other logic nodes ...
-export const generateLiveQuizQuestions = async (topic: string, count: number = 5): Promise<LiveQuizQuestion[]> => {
-    await enforceToken();
-    const ai = getAI();
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Generate ${count} ultra-high-quality competitive quiz questions for: "${topic}".`,
-        config: { systemInstruction: SYSTEM_FORMATTING, responseMimeType: "application/json" }
-    });
-    await deductToken();
-    return JSON.parse(response.text || "[]");
 };
 
 export const fetchChapterContent = async (level: ClassLevel, subject: Subject, chapter: string, details: string): Promise<string> => {
